@@ -3,262 +3,386 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TurboMail - Admin Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>TurboMail - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #1a1a1a;
-            --bg-tertiary: #2a2a2a;
-            --text-primary: #ffffff;
-            --text-secondary: #b0b0b0;
-            --accent-primary: #00d4ff;
-            --accent-secondary: #ff6b6b;
-            --border-color: #333333;
-            --hover-bg: #333333;
+            --primary-black: #0a0a0a;
+            --secondary-black: #1a1a1a;
+            --tertiary-black: #2a2a2a;
+            --accent-purple: #6c5ce7;
+            --accent-blue: #74b9ff;
+            --text-light: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border-dark: #333;
+            --success-green: #00b894;
+            --warning-orange: #fdcb6e;
+            --danger-red: #e17055;
         }
         
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-purple) var(--secondary-black);
+        }
+        
+        *::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        *::-webkit-scrollbar-track {
+            background: var(--secondary-black);
+        }
+        
+        *::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 4px;
         }
         
         body {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
+            background: var(--primary-black);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
         }
         
-        /* Sidebar Styles */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
         .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
             width: 280px;
-            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-            border-right: 1px solid var(--border-color);
+            background: var(--secondary-black);
+            border-right: 1px solid var(--border-dark);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
             z-index: 1000;
-            transition: all 0.3s ease;
         }
         
         .sidebar-header {
-            padding: 2rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-dark);
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
         }
         
-        .sidebar-logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-            text-decoration: none;
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-weight: 600;
         }
         
-        .sidebar-nav {
+        .sidebar-menu {
             padding: 1rem 0;
         }
         
-        .nav-item {
-            margin: 0.5rem 1rem;
-        }
-        
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            color: var(--text-secondary);
+        .menu-item {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-muted);
             text-decoration: none;
-            border-radius: 12px;
             transition: all 0.3s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
             cursor: pointer;
         }
         
-        .nav-link:hover, .nav-link.active {
-            background-color: var(--hover-bg);
-            color: var(--accent-primary);
-            transform: translateX(5px);
+        .menu-item:hover, .menu-item.active {
+            background: var(--tertiary-black);
+            color: var(--accent-purple);
+            border-left: 3px solid var(--accent-purple);
         }
         
-        .nav-link i {
-            margin-right: 1rem;
+        .menu-item i {
             width: 20px;
-            text-align: center;
+            margin-right: 10px;
         }
         
-        /* Main Content */
         .main-content {
+            flex: 1;
             margin-left: 280px;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
         
-        /* Header */
-        .header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border-color);
+        .top-header {
+            background: var(--secondary-black);
+            border-bottom: 1px solid var(--border-dark);
             padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            background: var(--primary-black);
+        }
+        
+        .footer {
+            background: var(--secondary-black);
+            border-top: 1px solid var(--border-dark);
+            padding: 1rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        
+        .card {
+            background: var(--secondary-black);
+            border: 1px solid var(--border-dark);
+            border-radius: 12px;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(108, 92, 231, 0.15);
+            border-color: var(--accent-purple);
+        }
+        
+        .card-header {
+            background: var(--tertiary-black);
+            border-bottom: 1px solid var(--border-dark);
+            color: var(--text-light);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+        }
+        
+        .btn-secondary {
+            background: var(--tertiary-black);
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border-dark);
+            color: var(--accent-purple);
+        }
+        
+        .btn-success {
+            background: var(--success-green);
+            border: none;
+        }
+        
+        .btn-warning {
+            background: var(--warning-orange);
+            border: none;
+            color: var(--primary-black);
+        }
+        
+        .btn-danger {
+            background: var(--danger-red);
+            border: none;
+        }
+        
+        .form-control, .form-select {
+            background: var(--tertiary-black);
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
+            border-radius: 8px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: var(--tertiary-black);
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 0.2rem rgba(108, 92, 231, 0.25);
+            color: var(--text-light);
+        }
+        
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .list-group-item {
+            background: var(--secondary-black);
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+        
+        .list-group-item:hover {
+            background: var(--tertiary-black);
+            border-color: var(--accent-purple);
+            transform: translateX(3px);
+        }
+        
+        .list-group-item.active {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+        }
+        
+        .badge {
+            border-radius: 20px;
+        }
+        
+        .bg-primary {
+            background: var(--accent-purple) !important;
+        }
+        
+        .bg-success {
+            background: var(--success-green) !important;
+        }
+        
+        .bg-warning {
+            background: var(--warning-orange) !important;
+        }
+        
+        .bg-danger {
+            background: var(--danger-red) !important;
+        }
+        
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        
+        .email-content {
+            background: var(--tertiary-black);
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 0.5rem 0;
+            border: none;
+        }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .api-endpoint {
+            background: var(--tertiary-black);
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .method-badge {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        
+        .method-get { background-color: var(--success-green); color: white; }
+        .method-delete { background-color: var(--danger-red); color: white; }
+        
+        .domain-item {
+            background: var(--tertiary-black);
+            border: 1px solid var(--border-dark);
+            border-radius: 6px;
+            padding: 10px;
+            margin: 5px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
-        .header-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-primary);
+        .pulse {
+            animation: pulse 2s infinite;
         }
         
-        .header-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
         
-        /* Content Area */
-        .content {
-            flex: 1;
-            padding: 2rem;
-            background-color: var(--bg-primary);
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
         }
         
-        /* Footer */
-        .footer {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            padding: 1rem 2rem;
-            text-align: center;
-            color: var(--text-secondary);
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Cards */
-        .card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            color: var(--text-primary);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        .glow {
+            box-shadow: 0 0 20px rgba(108, 92, 231, 0.3);
         }
         
-        .card-header {
-            background: var(--bg-tertiary);
-            border-bottom: 1px solid var(--border-color);
-            border-radius: 16px 16px 0 0 !important;
-            padding: 1.5rem;
+        .toast {
+            background: var(--secondary-black) !important;
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
         }
         
-        .card-body {
-            padding: 1.5rem;
+        .toast-header {
+            background: var(--tertiary-black);
+            border-bottom: 1px solid var(--border-dark);
         }
         
-        /* Buttons */
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-primary), #0099cc);
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
+        .modal-content {
+            background: var(--secondary-black);
+            border: 1px solid var(--border-dark);
+            color: var(--text-light);
         }
         
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        .modal-header {
+            border-bottom: 1px solid var(--border-dark);
         }
         
-        .btn-danger {
-            background: linear-gradient(135deg, var(--accent-secondary), #cc0000);
-            border: none;
-            border-radius: 10px;
+        .modal-footer {
+            border-top: 1px solid var(--border-dark);
         }
         
-        .btn-success {
-            background: linear-gradient(135deg, #00ff88, #00cc66);
-            border: none;
-            border-radius: 10px;
+        .table-dark {
+            --bs-table-bg: var(--secondary-black);
+            --bs-table-border-color: var(--border-dark);
         }
         
-        .btn-warning {
-            background: linear-gradient(135deg, #ffaa00, #ff8800);
-            border: none;
-            border-radius: 10px;
+        .navbar-dark {
+            background: var(--secondary-black) !important;
         }
         
-        /* Form Controls */
-        .form-control {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            padding: 0.75rem 1rem;
+        .dropdown-menu {
+            background: var(--secondary-black);
+            border: 1px solid var(--border-dark);
         }
         
-        .form-control:focus {
-            background: var(--bg-tertiary);
-            border-color: var(--accent-primary);
-            color: var(--text-primary);
-            box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25);
+        .dropdown-item {
+            color: var(--text-light);
         }
         
-        .form-control::placeholder {
-            color: var(--text-secondary);
+        .dropdown-item:hover {
+            background: var(--tertiary-black);
+            color: var(--accent-purple);
         }
         
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        /* Section Visibility */
-        .content-section {
-            display: none;
-        }
-        
-        .content-section.active {
-            display: block;
-        }
-        
-        /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                transition: transform 0.3s ease;
             }
             
             .sidebar.show {
@@ -268,849 +392,455 @@
             .main-content {
                 margin-left: 0;
             }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
         }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-primary);
-        }
-        
-        /* Toast Notifications */
-        .toast {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-        }
-        
-        /* Table Styles */
-        .table-dark {
-            background-color: var(--bg-secondary);
-            border-color: var(--border-color);
-        }
-        
-        .table-dark td, .table-dark th {
-            border-color: var(--border-color);
-        }
-        
-        /* API Endpoint Styles */
-        .api-endpoint {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .method-badge {
-            font-weight: bold;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            margin-right: 1rem;
-        }
-        
-        .method-get { background-color: #28a745; color: white; }
-        .method-post { background-color: #007bff; color: white; }
-        .method-delete { background-color: #dc3545; color: white; }
-        
-        .domain-item {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.2rem;
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <a href="#" class="sidebar-logo">
-                <i class="fas fa-envelope"></i> TurboMail
-            </a>
-        </div>
-        <nav class="sidebar-nav">
-            <div class="nav-item">
-                <a href="#" class="nav-link active" onclick="showSection('dashboard')">
-                    <i class="fas fa-tachometer-alt"></i>
-                    Dashboard
-                </a>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h4><i class="fas fa-envelope"></i> TurboMail</h4>
+                <small>Admin Panel</small>
             </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('api-endpoints')">
-                    <i class="fas fa-code"></i>
-                    API Endpoints
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('domains')">
-                    <i class="fas fa-globe"></i>
-                    Domain Management
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('ttl-management')">
-                    <i class="fas fa-clock"></i>
-                    TTL Management
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('notifications')">
-                    <i class="fas fa-bell"></i>
-                    Notifications
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('settings')">
-                    <i class="fas fa-cog"></i>
-                    Settings
-                </a>
-            </div>
-        </nav>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-title">
-                <i class="fas fa-chart-bar"></i> Admin Dashboard
-            </div>
-            <div class="header-actions">
-                <button class="btn btn-outline-light btn-sm" onclick="refreshStats()">
-                    <i class="fas fa-sync-alt"></i> Refresh
+            <div class="sidebar-menu">
+                <button class="menu-item active" onclick="showSection('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
                 </button>
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user"></i> Admin
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-dark">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog"></i> Profile</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    </ul>
-                </div>
+                <button class="menu-item" onclick="showSection('api-endpoints')">
+                    <i class="fas fa-code"></i> API Endpoints
+                </button>
+                <button class="menu-item" onclick="showSection('domains')">
+                    <i class="fas fa-globe"></i> Domain Management
+                </button>
+                <button class="menu-item" onclick="showSection('inboxes')">
+                    <i class="fas fa-inbox"></i> Email Inboxes
+                </button>
+                <button class="menu-item" onclick="showSection('ttl-config')">
+                    <i class="fas fa-clock"></i> TTL Configuration
+                </button>
+                <button class="menu-item" onclick="showSection('notifications')">
+                    <i class="fas fa-bell"></i> Real-time Notifications
+                </button>
+                <button class="menu-item" onclick="showSection('stats')">
+                    <i class="fas fa-chart-bar"></i> System Statistics
+                </button>
             </div>
-        </header>
-
-        <!-- Content -->
-        <main class="content">
-            <!-- Dashboard Section -->
-            <div id="dashboard" class="content-section active">
-                <h2 class="mb-4"><i class="fas fa-chart-bar"></i> System Overview</h2>
-                
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalInboxes">-</div>
-                        <div class="stat-label">Total Inboxes</div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Header -->
+            <div class="top-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <button class="mobile-menu-btn me-3" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <h5 class="mb-0">TurboMail Admin Panel</h5>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="activeInboxes">-</div>
-                        <div class="stat-label">Active Inboxes</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="emailsStored">-</div>
-                        <div class="stat-label">Emails Stored</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="redisMemory">-</div>
-                        <div class="stat-label">Redis Memory</div>
-                    </div>
-                </div>
-                
-                <!-- Redis Performance -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-database"></i> Redis Performance</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <small class="text-muted">Status:</small>
-                                <div id="redisStatus" class="fw-bold">-</div>
-                            </div>
-                            <div class="col-md-4">
-                                <small class="text-muted">Response Time:</small>
-                                <div id="redisResponseTime" class="fw-bold">-</div>
-                            </div>
-                            <div class="col-md-4">
-                                <small class="text-muted">Version:</small>
-                                <div id="redisVersion" class="fw-bold">-</div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
-                                <label class="form-check-label" for="autoRefresh">
-                                    Auto-refresh every 5 seconds
-                                </label>
-                            </div>
-                        </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-success me-2">Online</span>
+                        <i class="fas fa-user-circle fa-lg"></i>
                     </div>
                 </div>
             </div>
-
-            <!-- API Endpoints Section -->
-            <div id="api-endpoints" class="content-section">
-                <h2 class="mb-4"><i class="fas fa-code"></i> API Endpoints</h2>
-                
-                <!-- Configuration -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-cog"></i> API Configuration</h5>
+            
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="content-section">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-tachometer-alt"></i> System Dashboard</h2>
+                            <p class="text-muted">Real-time overview of your TurboMail system</p>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">Server URL:</label>
-                                <input type="text" id="serverUrl" class="form-control" value="http://localhost:3001">
+                    
+                    <!-- Stats Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-value" id="totalInboxes">0</div>
+                                <div>Total Inboxes</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">API Key:</label>
-                                <input type="text" id="apiKey" class="form-control" value="supersecretapikey123">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-value" id="activeInboxes">0</div>
+                                <div>Active Inboxes</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-value" id="emailsStored">0</div>
+                                <div>Emails Stored</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card">
+                                <div class="stats-value" id="redisMemory">0 MB</div>
+                                <div>Redis Memory</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Redis Performance -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-server"></i> Redis Performance</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Status:</strong> <span id="redisStatus" class="badge bg-success">Connected</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Response Time:</strong> <span id="redisResponseTime">0ms</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Version:</strong> <span id="redisVersion">-</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="form-check-label">
+                                            <input type="checkbox" class="form-check-input" id="autoRefresh" onchange="setupAutoRefresh()">
+                                            Auto-refresh every 5 seconds
+                                        </label>
+                                        <button class="btn btn-primary btn-sm ms-3" onclick="refreshStats()">
+                                            <i class="fas fa-sync-alt"></i> Refresh Now
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Endpoints List -->
-                <div class="api-endpoint">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="method-badge method-get">GET</span>
-                            <strong>📩 Auto-generate random email</strong>
+                <!-- API Endpoints Section -->
+                <div id="api-endpoints" class="content-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-code"></i> API Endpoints</h2>
+                            <p class="text-muted">Available API endpoints for TurboMail integration</p>
                         </div>
                     </div>
-                    <div class="mt-2">
-                        <code id="endpoint1">http://localhost:3001/generate?key=supersecretapikey123</code>
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyEndpoint('endpoint1')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="api-endpoint">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="method-badge method-post">POST</span>
-                            <strong>📧 Create manual email</strong>
+                    
+                    <div class="api-endpoint">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="method-badge method-get">GET</span>
+                                <strong>📩 Auto-generate random email</strong>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mt-2">
-                        <code id="endpoint2">http://localhost:3001/generate/manual</code>
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyEndpoint('endpoint2')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="api-endpoint">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="method-badge method-get">GET</span>
-                            <strong>📬 Get inbox messages</strong>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <code id="endpoint3">http://localhost:3001/inbox/{email}?key=supersecretapikey123</code>
-                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyEndpoint('endpoint3')">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Domain Management Section -->
-            <div id="domains" class="content-section">
-                <h2 class="mb-4"><i class="fas fa-globe"></i> Domain Management</h2>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-plus"></i> Add New Domain</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="input-group mb-3">
-                            <input type="text" id="newDomain" class="form-control" placeholder="example.com">
-                            <button class="btn btn-primary" onclick="addDomain()">
-                                <i class="fas fa-plus"></i> Add Domain
+                        <div class="mt-2">
+                            <code id="endpoint1">http://165.22.97.51:3001/generate?key=supersecretapikey123</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint1')">
+                                <i class="fas fa-copy"></i>
                             </button>
                         </div>
-                        
-                        <div id="domainsList">
-                            <!-- Domains will be loaded here -->
+                    </div>
+                    
+                    <div class="api-endpoint">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="method-badge method-get">GET</span>
+                                <strong>📧 Generate custom email</strong>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <code id="endpoint2">http://165.22.97.51:3001/generate?key=supersecretapikey123&name=yourname</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint2')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="api-endpoint">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="method-badge method-get">GET</span>
+                                <strong>📬 Get inbox emails</strong>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <code id="endpoint3">http://165.22.97.51:3001/inbox/youremail@domain.com?key=supersecretapikey123</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint3')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="api-endpoint">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="method-badge method-delete">DELETE</span>
+                                <strong>🗑️ Delete inbox</strong>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <code id="endpoint4">http://165.22.97.51:3001/inbox/youremail@domain.com?key=supersecretapikey123</code>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint4')">
+                                <i class="fas fa-copy"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- TTL Management Section -->
-            <div id="ttl-management" class="content-section">
-                <h2 class="mb-4"><i class="fas fa-clock"></i> TTL Management</h2>
                 
-                <!-- TTL Configuration -->
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-cog"></i> TTL Configuration</h5>
+                <!-- Domain Management Section -->
+                <div id="domains" class="content-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-globe"></i> Domain Management</h2>
+                            <p class="text-muted">Manage available email domains</p>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">Auto-generated emails TTL:</label>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Available Domains</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="domainsList"></div>
+                            <div class="mt-3">
                                 <div class="input-group">
-                                    <input type="number" id="autoTTL" class="form-control" value="3600" min="60">
-                                    <span class="input-group-text">seconds</span>
+                                    <input type="text" class="form-control" id="newDomain" placeholder="Enter new domain (e.g., example.com)">
+                                    <button class="btn btn-primary" onclick="addDomain()">
+                                        <i class="fas fa-plus"></i> Add Domain
+                                    </button>
                                 </div>
-                                <small class="text-muted">Default: 1 hour (3600 seconds)</small>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Manual emails TTL:</label>
-                                <div class="input-group">
-                                    <input type="number" id="manualTTL" class="form-control" value="2592000" min="3600">
-                                    <span class="input-group-text">seconds</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Email Inboxes Section -->
+                <div id="inboxes" class="content-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-inbox"></i> Email Inboxes</h2>
+                            <p class="text-muted">Manage and view email inboxes</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Inbox List</h5>
                                 </div>
-                                <small class="text-muted">Default: 30 days (2592000 seconds)</small>
+                                <div class="card-body">
+                                    <div id="inboxList" class="list-group"></div>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-primary mt-3" onclick="updateTTLConfig()">
-                            <i class="fas fa-save"></i> Update TTL Config
-                        </button>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Email Content</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="emailDisplay" style="display: none;">
+                                        <div id="emailList" class="list-group"></div>
+                                    </div>
+                                    <div id="noEmailSelected" class="text-center text-muted">
+                                        <i class="fas fa-envelope fa-3x mb-3"></i>
+                                        <p>Select an inbox to view emails</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Individual Email TTL -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-envelope"></i> Individual Email TTL</h5>
+                <!-- TTL Configuration Section -->
+                <div id="ttl-config" class="content-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-clock"></i> TTL Configuration</h2>
+                            <p class="text-muted">Configure Time-To-Live settings for emails</p>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">Email Address:</label>
-                                <input type="email" id="emailTTL" class="form-control" placeholder="user@domain.com">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">TTL (seconds):</label>
-                                <input type="number" id="emailTTLValue" class="form-control" min="60">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">&nbsp;</label>
-                                <button class="btn btn-warning d-block w-100" onclick="updateEmailTTL()">
-                                    <i class="fas fa-clock"></i> Update
-                                </button>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Auto-generated Email TTL</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">TTL (seconds)</label>
+                                        <input type="number" class="form-control" id="autoTTL" value="3600">
+                                        <small class="form-text text-muted">Default: 3600 seconds (1 hour)</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="row mt-3">
-                            <div class="col-md-10">
-                                <label class="form-label">Delete Email Inbox:</label>
-                                <input type="email" id="deleteEmail" class="form-control" placeholder="user@domain.com">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Manual Email TTL</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">TTL (seconds)</label>
+                                        <input type="number" class="form-control" id="manualTTL" value="7200">
+                                        <small class="form-text text-muted">Default: 7200 seconds (2 hours)</small>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-2">
-                                <label class="form-label">&nbsp;</label>
-                                <button class="btn btn-danger d-block w-100" onclick="deleteEmailInbox()">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-primary" onclick="updateTTLConfig()">
+                                <i class="fas fa-save"></i> Update TTL Config
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Notifications Section -->
-            <div id="notifications" class="content-section">
-                <h2 class="mb-4"><i class="fas fa-bell"></i> Real-time Notifications</h2>
                 
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-bell"></i> Email Subscriptions</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Subscribe to Email:</label>
-                            <div class="input-group">
-                                <input type="email" id="subscribeEmail" class="form-control" placeholder="user@domain.com">
-                                <button class="btn btn-success" onclick="subscribeToEmailFromInput()">
-                                    <i class="fas fa-bell"></i> Subscribe
-                                </button>
-                            </div>
-                            <small class="text-muted">Get instant notifications when new emails arrive</small>
+                <!-- Real-time Notifications Section -->
+                <div id="notifications" class="content-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-bell"></i> Real-time Email Notifications</h2>
+                            <p class="text-muted">Subscribe to real-time email notifications via WebSocket</p>
                         </div>
-                        
-                        <div id="subscribedEmailsList" class="mt-3">
-                            <!-- Subscribed emails will appear here -->
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Email Subscription</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" id="subscribeEmail" placeholder="Enter email to subscribe">
+                                    </div>
+                                    <button class="btn btn-primary me-2" onclick="subscribeToEmail()">
+                                        <i class="fas fa-bell"></i> Subscribe
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="unsubscribeFromEmail()">
+                                        <i class="fas fa-bell-slash"></i> Unsubscribe
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Connection Status</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>WebSocket Status:</strong> 
+                                        <span id="wsStatus" class="badge bg-secondary">Disconnected</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong>Subscribed Emails:</strong>
+                                        <div id="subscribedEmailsList" class="mt-2"></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Settings Section -->
-            <div id="settings" class="content-section">
-                <h2 class="mb-4"><i class="fas fa-cog"></i> Settings</h2>
                 
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-server"></i> Server Configuration</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">Server URL:</label>
-                                <input type="text" class="form-control" value="http://localhost:3001" readonly>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">API Key:</label>
-                                <input type="text" class="form-control" value="supersecretapikey123" readonly>
-                            </div>
+                <!-- System Statistics Section -->
+                <div id="stats" class="content-section" style="display: none;">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h2><i class="fas fa-chart-bar"></i> System Statistics</h2>
+                            <p class="text-muted">Detailed system performance and usage statistics</p>
                         </div>
-                        
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Redis Status:</label>
-                                <div class="form-control" id="redisConnectionStatus">Connected</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">WebSocket Status:</label>
-                                <div class="form-control" id="websocketStatus">Connected</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Detailed Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Email Statistics</h6>
+                                            <ul class="list-unstyled">
+                                                <li><strong>Total Inboxes:</strong> <span id="detailTotalInboxes">0</span></li>
+                                                <li><strong>Active Inboxes:</strong> <span id="detailActiveInboxes">0</span></li>
+                                                <li><strong>Emails Stored:</strong> <span id="detailEmailsStored">0</span></li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Redis Performance</h6>
+                                            <ul class="list-unstyled">
+                                                <li><strong>Memory Usage:</strong> <span id="detailRedisMemory">0 MB</span></li>
+                                                <li><strong>Response Time:</strong> <span id="detailRedisResponseTime">0ms</span></li>
+                                                <li><strong>Status:</strong> <span id="detailRedisStatus" class="badge bg-success">Connected</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-envelope"></i> TurboMail Admin Dashboard
-                </div>
-                <div>
-                    <small>© 2024 TurboMail. All rights reserved.</small>
-                </div>
-                <div>
-                    <small>Version 2.0.0</small>
-                </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+                <p>&copy; 2024 TurboMail. All rights reserved. | Powered by Node.js & Redis</p>
             </div>
-        </footer>
+        </div>
     </div>
-
-    <!-- Alert Container -->
-    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
-
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        // Global variables
-        let socket = null;
+        let socket;
         let subscribedEmails = new Set();
-        let statsRefreshInterval = null;
+        let autoRefreshInterval;
         
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadConfig();
-            loadDomains();
-            loadTTLConfig();
-            updateEndpoints();
-            
-            // Initialize real-time features
-            initializeWebSocket();
-            
-            // Initialize dashboard
-            loadStats();
-            setupAutoRefresh();
-            
-            // Update endpoints when config changes
-            document.getElementById('apiKey').addEventListener('input', updateEndpoints);
-            document.getElementById('serverUrl').addEventListener('input', updateEndpoints);
-        });
-        
-        // Navigation functions
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active class from all nav links
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Add active class to clicked nav link
-            event.target.classList.add('active');
-            
-            // Update header title
-            const titles = {
-                'dashboard': 'Dashboard',
-                'api-endpoints': 'API Endpoints',
-                'domains': 'Domain Management',
-                'ttl-management': 'TTL Management',
-                'notifications': 'Notifications',
-                'settings': 'Settings'
-            };
-            
-            document.querySelector('.header-title').innerHTML = `<i class="fas fa-chart-bar"></i> ${titles[sectionId]}`;
-        }
-        
-        // Configuration functions
-        function loadConfig() {
-            const savedServerUrl = localStorage.getItem('serverUrl') || 'http://localhost:3001';
-            const savedApiKey = localStorage.getItem('apiKey') || 'supersecretapikey123';
-            
-            document.getElementById('serverUrl').value = savedServerUrl;
-            document.getElementById('apiKey').value = savedApiKey;
-        }
-        
-        function getServerUrl() {
-            return document.getElementById('serverUrl').value || 'http://localhost:3001';
-        }
-        
-        function getApiKey() {
-            return document.getElementById('apiKey').value || 'supersecretapikey123';
-        }
-        
-        function updateEndpoints() {
-            const serverUrl = getServerUrl();
-            const apiKey = getApiKey();
-            
-            document.getElementById('endpoint1').textContent = `${serverUrl}/generate?key=${apiKey}`;
-            document.getElementById('endpoint2').textContent = `${serverUrl}/generate/manual`;
-            document.getElementById('endpoint3').textContent = `${serverUrl}/inbox/{email}?key=${apiKey}`;
-            
-            // Save to localStorage
-            localStorage.setItem('serverUrl', serverUrl);
-            localStorage.setItem('apiKey', apiKey);
-        }
-        
-        function copyEndpoint(elementId) {
-            const element = document.getElementById(elementId);
-            navigator.clipboard.writeText(element.textContent);
-            showAlert('Endpoint copied to clipboard!', 'success');
-        }
-        
-        // Domain management functions
-        async function loadDomains() {
-            try {
-                const response = await fetch('/admin/domains');
-                const data = await response.json();
-                
-                const domainsList = document.getElementById('domainsList');
-                if (data.success && data.domains.length > 0) {
-                    domainsList.innerHTML = data.domains.map(domain => `
-                        <div class="domain-item">
-                            <span><i class="fas fa-globe"></i> ${domain}</span>
-                            <button class="btn btn-sm btn-danger" onclick="deleteDomain('${domain}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `).join('');
-                } else {
-                    domainsList.innerHTML = '<p class="text-muted">No domains configured</p>';
-                }
-            } catch (error) {
-                console.error('Error loading domains:', error);
-                showAlert('Error loading domains', 'danger');
-            }
-        }
-        
-        async function addDomain() {
-            const domain = document.getElementById('newDomain').value.trim();
-            if (!domain) {
-                showAlert('Please enter a domain name', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/domains', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ domain })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('newDomain').value = '';
-                    loadDomains();
-                    showAlert('Domain added successfully!', 'success');
-                } else {
-                    showAlert(data.error || 'Failed to add domain', 'danger');
-                }
-            } catch (error) {
-                console.error('Error adding domain:', error);
-                showAlert('Error adding domain', 'danger');
-            }
-        }
-        
-        async function deleteDomain(domain) {
-            if (!confirm(`Are you sure you want to delete domain: ${domain}?`)) return;
-            
-            try {
-                const response = await fetch(`/admin/domains/${domain}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    loadDomains();
-                    showAlert('Domain deleted successfully!', 'success');
-                } else {
-                    showAlert(data.error || 'Failed to delete domain', 'danger');
-                }
-            } catch (error) {
-                console.error('Error deleting domain:', error);
-                showAlert('Error deleting domain', 'danger');
-            }
-        }
-        
-        // TTL management functions
-        async function loadTTLConfig() {
-            try {
-                const response = await fetch('/admin/ttl/config');
-                const data = await response.json();
-                
-                if (response.ok && data.ttl) {
-                    document.getElementById('autoTTL').value = data.ttl.autoGenerated;
-                    document.getElementById('manualTTL').value = data.ttl.manualCreated;
-                }
-            } catch (error) {
-                console.error('Error loading TTL config:', error);
-            }
-        }
-        
-        async function updateTTLConfig() {
-            const autoGenerated = parseInt(document.getElementById('autoTTL').value);
-            const manualCreated = parseInt(document.getElementById('manualTTL').value);
-            
-            if (autoGenerated < 60 || manualCreated < 3600) {
-                showAlert('Invalid TTL values. Auto-generated must be ≥60s, Manual must be ≥3600s', 'danger');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/ttl/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ autoGenerated, manualCreated })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    showAlert('TTL configuration updated successfully!', 'success');
-                } else {
-                    showAlert(data.error || 'Failed to update TTL configuration', 'danger');
-                }
-            } catch (error) {
-                console.error('Error updating TTL config:', error);
-                showAlert('Error updating TTL configuration', 'danger');
-            }
-        }
-        
-        async function updateEmailTTL() {
-            const email = document.getElementById('emailTTL').value.trim();
-            const ttl = parseInt(document.getElementById('emailTTLValue').value);
-            
-            if (!email || !ttl || ttl < 60) {
-                showAlert('Please enter a valid email and TTL (≥60 seconds)', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/ttl/email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, ttl })
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('emailTTL').value = '';
-                    document.getElementById('emailTTLValue').value = '';
-                    showAlert(`TTL updated for ${email}`, 'success');
-                } else {
-                    showAlert(data.error || 'Failed to update email TTL', 'danger');
-                }
-            } catch (error) {
-                console.error('Error updating email TTL:', error);
-                showAlert('Error updating email TTL', 'danger');
-            }
-        }
-        
-        async function deleteEmailInbox() {
-            const email = document.getElementById('deleteEmail').value.trim();
-            
-            if (!email) {
-                showAlert('Please enter an email address', 'warning');
-                return;
-            }
-            
-            if (!confirm(`Are you sure you want to permanently delete the inbox for: ${email}?`)) return;
-            
-            try {
-                const response = await fetch(`/admin/ttl/email/${email}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('deleteEmail').value = '';
-                    showAlert(`Inbox deleted for ${email}`, 'success');
-                    loadStats(); // Refresh stats
-                } else {
-                    showAlert(data.error || 'Failed to delete email inbox', 'danger');
-                }
-            } catch (error) {
-                console.error('Error deleting email inbox:', error);
-                showAlert('Error deleting email inbox', 'danger');
-            }
-        }
-        
-        // Dashboard statistics functions
-        async function loadStats() {
-            try {
-                const response = await fetch('/admin/stats');
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    updateStatsDisplay(data.stats);
-                } else {
-                    console.error('Failed to load stats:', data.error);
-                }
-            } catch (error) {
-                console.error('Error loading stats:', error);
-                updateStatsDisplay({
-                    totalInboxes: 'Error',
-                    activeInboxes: 'Error',
-                    emailsStored: 'Error',
-                    redisConnected: false,
-                    redisMemory: 'Error',
-                    redisPerformance: 'Error'
-                });
-            }
-        }
-        
-        function updateStatsDisplay(stats) {
-            document.getElementById('totalInboxes').textContent = stats.totalInboxes;
-            document.getElementById('activeInboxes').textContent = stats.activeInboxes;
-            document.getElementById('emailsStored').textContent = stats.emailsStored;
-            document.getElementById('redisMemory').textContent = stats.redisMemory;
-            
-            if (stats.redisConnected && stats.redisPerformance !== 'N/A') {
-                document.getElementById('redisStatus').textContent = stats.redisPerformance.status;
-                document.getElementById('redisResponseTime').textContent = stats.redisPerformance.responseTime;
-                document.getElementById('redisVersion').textContent = stats.redisPerformance.version;
-                
-                // Color code the status
-                const statusElement = document.getElementById('redisStatus');
-                statusElement.className = 'fw-bold';
-                if (stats.redisPerformance.status === 'Excellent') {
-                    statusElement.classList.add('text-success');
-                } else if (stats.redisPerformance.status === 'Good') {
-                    statusElement.classList.add('text-warning');
-                } else {
-                    statusElement.classList.add('text-danger');
-                }
-            } else {
-                document.getElementById('redisStatus').textContent = 'Disconnected';
-                document.getElementById('redisResponseTime').textContent = 'N/A';
-                document.getElementById('redisVersion').textContent = 'N/A';
-                document.getElementById('redisStatus').className = 'fw-bold text-danger';
-            }
-        }
-        
-        function refreshStats() {
-            loadStats();
-            showAlert('Statistics refreshed', 'info');
-        }
-        
-        function setupAutoRefresh() {
-            const autoRefreshCheckbox = document.getElementById('autoRefresh');
-            
-            function toggleAutoRefresh() {
-                if (autoRefreshCheckbox.checked) {
-                    if (!statsRefreshInterval) {
-                        statsRefreshInterval = setInterval(loadStats, 5000);
-                        console.log('Auto-refresh enabled');
-                    }
-                } else {
-                    if (statsRefreshInterval) {
-                        clearInterval(statsRefreshInterval);
-                        statsRefreshInterval = null;
-                        console.log('Auto-refresh disabled');
-                    }
-                }
-            }
-            
-            autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
-            
-            if (autoRefreshCheckbox.checked) {
-                toggleAutoRefresh();
-            }
-        }
-        
-        // Real-time email notifications with WebSocket
+        // Initialize WebSocket connection
         function initializeWebSocket() {
-            const serverUrl = getServerUrl();
-            socket = io(serverUrl);
+            socket = io();
             
             socket.on('connect', () => {
                 console.log('Connected to WebSocket server');
-                showAlert('🔌 Real-time notifications connected!', 'success');
+                document.getElementById('wsStatus').textContent = 'Connected';
+                document.getElementById('wsStatus').className = 'badge bg-success';
             });
             
             socket.on('disconnect', () => {
                 console.log('Disconnected from WebSocket server');
-                showAlert('⚠️ Real-time notifications disconnected', 'warning');
+                document.getElementById('wsStatus').textContent = 'Disconnected';
+                document.getElementById('wsStatus').className = 'badge bg-danger';
             });
             
             socket.on('new-email', (data) => {
                 showNewEmailNotification(data);
             });
-            
-            socket.on('subscribed', (data) => {
-                console.log('Subscribed to email:', data.email);
-            });
-            
-            socket.on('unsubscribed', (data) => {
-                console.log('Unsubscribed from email:', data.email);
-            });
         }
         
-        function subscribeToEmail(email) {
-            if (socket && email && !subscribedEmails.has(email)) {
-                socket.emit('subscribe-email', email);
-                subscribedEmails.add(email);
-                console.log('Subscribed to real-time notifications for:', email);
-            }
-        }
-        
-        function unsubscribeFromEmail(email) {
-            if (socket && email && subscribedEmails.has(email)) {
-                socket.emit('unsubscribe-email', email);
-                subscribedEmails.delete(email);
-                console.log('Unsubscribed from real-time notifications for:', email);
-            }
-        }
-        
+        // Show new email notification
         function showNewEmailNotification(data) {
             const toast = document.createElement('div');
             toast.className = 'toast align-items-center text-white bg-primary border-0';
@@ -1145,6 +875,15 @@
                 toast.remove();
             });
             
+            // Auto-update inbox if viewing same email
+            const currentViewingEmail = getCurrentViewingEmail();
+            if (currentViewingEmail === data.email) {
+                const emailToAdd = data.fullEmailData || data.message;
+                addEmailToInboxView(emailToAdd);
+            }
+            
+            updateInboxCounter(data.email);
+            
             try {
                 const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
                 audio.volume = 0.3;
@@ -1152,66 +891,428 @@
             } catch (e) {}
         }
         
-        function subscribeToEmailFromInput() {
-            const email = document.getElementById('subscribeEmail').value.trim();
-            if (email && email.includes('@')) {
-                subscribeToEmail(email);
-                updateSubscribedEmailsList();
-                document.getElementById('subscribeEmail').value = '';
-                showAlert(`Subscribed to real-time notifications for ${email}`, 'success');
-            } else {
-                showAlert('Please enter a valid email address', 'danger');
+        // Get currently viewing email address
+        function getCurrentViewingEmail() {
+            const emailDisplay = document.getElementById('emailDisplay');
+            if (emailDisplay && emailDisplay.style.display !== 'none') {
+                const emailHeader = emailDisplay.querySelector('h5');
+                if (emailHeader) {
+                    const match = emailHeader.textContent.match(/Inbox: (.+)/);
+                    return match ? match[1] : null;
+                }
+            }
+            return null;
+        }
+        
+        // Add new email to inbox view in real-time
+        function addEmailToInboxView(emailData) {
+            const emailList = document.getElementById('emailList');
+            if (emailList) {
+                const emailElement = createEmailElement(emailData);
+                emailList.insertBefore(emailElement, emailList.firstChild);
+                
+                const emailCountElement = document.querySelector('#emailDisplay h5 small');
+                if (emailCountElement) {
+                    const currentCount = parseInt(emailCountElement.textContent.match(/\d+/)[0]) || 0;
+                    emailCountElement.textContent = `(${currentCount + 1} emails)`;
+                }
             }
         }
         
+        // Create email element for inbox display
+        function createEmailElement(email) {
+            const emailDiv = document.createElement('div');
+            emailDiv.className = 'list-group-item list-group-item-action';
+            emailDiv.style.cursor = 'pointer';
+            emailDiv.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${email.subject || 'No Subject'}</h6>
+                    <small class="text-muted">${new Date(email.timestamp).toLocaleString()}</small>
+                </div>
+                <p class="mb-1"><strong>From:</strong> ${email.from}</p>
+                <small class="text-muted">${(email.body || '').substring(0, 100)}${(email.body || '').length > 100 ? '...' : ''}</small>
+            `;
+            
+            emailDiv.addEventListener('click', () => {
+                showEmailContent(email);
+            });
+            
+            return emailDiv;
+        }
+        
+        // Update inbox counter in sidebar
+        function updateInboxCounter(email) {
+            const inboxItems = document.querySelectorAll('#inboxList .list-group-item');
+            inboxItems.forEach(item => {
+                const emailText = item.querySelector('strong');
+                if (emailText && emailText.textContent === email) {
+                    const badge = item.querySelector('.badge');
+                    if (badge) {
+                        const currentCount = parseInt(badge.textContent) || 0;
+                        badge.textContent = currentCount + 1;
+                        badge.className = 'badge bg-primary rounded-pill';
+                    }
+                }
+            });
+        }
+        
+        // Subscribe to email notifications
+        function subscribeToEmail() {
+            const email = document.getElementById('subscribeEmail').value.trim();
+            if (email && socket) {
+                socket.emit('subscribe-email', email);
+                subscribedEmails.add(email);
+                updateSubscribedEmailsList();
+                document.getElementById('subscribeEmail').value = '';
+                console.log('Subscribed to real-time notifications for:', email);
+            }
+        }
+        
+        // Unsubscribe from email notifications
+        function unsubscribeFromEmail() {
+            const email = document.getElementById('subscribeEmail').value.trim();
+            if (email && socket && subscribedEmails.has(email)) {
+                socket.emit('unsubscribe-email', email);
+                subscribedEmails.delete(email);
+                updateSubscribedEmailsList();
+                document.getElementById('subscribeEmail').value = '';
+                console.log('Unsubscribed from real-time notifications for:', email);
+            }
+        }
+        
+        // Update subscribed emails list
         function updateSubscribedEmailsList() {
-            const listContainer = document.getElementById('subscribedEmailsList');
+            const container = document.getElementById('subscribedEmailsList');
+            container.innerHTML = '';
+            
             if (subscribedEmails.size === 0) {
-                listContainer.innerHTML = '<small class="text-muted">No email subscriptions active</small>';
+                container.innerHTML = '<small class="text-muted">No subscriptions</small>';
                 return;
             }
             
-            let html = '<div class="mb-2"><strong>Active Subscriptions:</strong></div>';
             subscribedEmails.forEach(email => {
-                html += `
-                    <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-dark rounded">
-                        <span><i class="fas fa-envelope text-success"></i> ${email}</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="unsubscribeFromEmailUI('${email}')">
-                            <i class="fas fa-bell-slash"></i>
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary me-1 mb-1';
+                badge.textContent = email;
+                container.appendChild(badge);
+            });
+        }
+        
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/admin/stats');
+                const stats = await response.json();
+                updateStatsDisplay(stats);
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Update statistics display
+        function updateStatsDisplay(stats) {
+            document.getElementById('totalInboxes').textContent = stats.totalInboxes || 0;
+            document.getElementById('activeInboxes').textContent = stats.activeInboxes || 0;
+            document.getElementById('emailsStored').textContent = stats.emailsStored || 0;
+            document.getElementById('redisMemory').textContent = `${stats.redisMemory || 0} MB`;
+            
+            const statusElement = document.getElementById('redisStatus');
+            statusElement.textContent = stats.redisStatus || 'Unknown';
+            statusElement.className = `badge ${stats.redisStatus === 'connected' ? 'bg-success' : 'bg-danger'}`;
+            
+            document.getElementById('redisResponseTime').textContent = `${stats.redisResponseTime || 0}ms`;
+            document.getElementById('redisVersion').textContent = stats.redisVersion || '-';
+            
+            // Update detailed stats
+            document.getElementById('detailTotalInboxes').textContent = stats.totalInboxes || 0;
+            document.getElementById('detailActiveInboxes').textContent = stats.activeInboxes || 0;
+            document.getElementById('detailEmailsStored').textContent = stats.emailsStored || 0;
+            document.getElementById('detailRedisMemory').textContent = `${stats.redisMemory || 0} MB`;
+            document.getElementById('detailRedisResponseTime').textContent = `${stats.redisResponseTime || 0}ms`;
+            
+            const detailStatusElement = document.getElementById('detailRedisStatus');
+            detailStatusElement.textContent = stats.redisStatus || 'Unknown';
+            detailStatusElement.className = `badge ${stats.redisStatus === 'connected' ? 'bg-success' : 'bg-danger'}`;
+        }
+        
+        // Refresh statistics
+        function refreshStats() {
+            loadStats();
+        }
+        
+        // Setup auto-refresh
+        function setupAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(loadStats, 5000);
+            } else {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+            }
+        }
+        
+        // Show section
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.style.display = 'none');
+            
+            // Show selected section
+            document.getElementById(sectionId).style.display = 'block';
+            
+            // Update menu active state
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        // Toggle sidebar for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('show');
+        }
+        
+        // Copy endpoint to clipboard
+        function copyEndpoint(elementId) {
+            const element = document.getElementById(elementId);
+            navigator.clipboard.writeText(element.textContent).then(() => {
+                // Show success feedback
+                const button = element.nextElementSibling;
+                const originalIcon = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.classList.add('btn-success');
+                button.classList.remove('btn-outline-secondary');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalIcon;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        }
+        
+        // Load domains
+        async function loadDomains() {
+            try {
+                const response = await fetch('/admin/domains');
+                const domains = await response.json();
+                displayDomains(domains);
+            } catch (error) {
+                console.error('Error loading domains:', error);
+            }
+        }
+        
+        // Display domains
+        function displayDomains(domains) {
+            const container = document.getElementById('domainsList');
+            container.innerHTML = '';
+            
+            domains.forEach(domain => {
+                const domainDiv = document.createElement('div');
+                domainDiv.className = 'domain-item';
+                domainDiv.innerHTML = `
+                    <span>${domain}</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeDomain('${domain}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                container.appendChild(domainDiv);
+            });
+        }
+        
+        // Add domain
+        async function addDomain() {
+            const domain = document.getElementById('newDomain').value.trim();
+            if (!domain) return;
+            
+            try {
+                const response = await fetch('/admin/domains', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('newDomain').value = '';
+                    loadDomains();
+                }
+            } catch (error) {
+                console.error('Error adding domain:', error);
+            }
+        }
+        
+        // Remove domain
+        async function removeDomain(domain) {
+            if (!confirm(`Are you sure you want to remove ${domain}?`)) return;
+            
+            try {
+                const response = await fetch(`/admin/domains/${domain}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadDomains();
+                }
+            } catch (error) {
+                console.error('Error removing domain:', error);
+            }
+        }
+        
+        // Load inboxes
+        async function loadInboxes() {
+            try {
+                const response = await fetch('/admin/inboxes');
+                const inboxes = await response.json();
+                displayInboxes(inboxes);
+            } catch (error) {
+                console.error('Error loading inboxes:', error);
+            }
+        }
+        
+        // Display inboxes
+        function displayInboxes(inboxes) {
+            const container = document.getElementById('inboxList');
+            container.innerHTML = '';
+            
+            inboxes.forEach(inbox => {
+                const inboxDiv = document.createElement('div');
+                inboxDiv.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                inboxDiv.style.cursor = 'pointer';
+                inboxDiv.innerHTML = `
+                    <div>
+                        <strong>${inbox.email}</strong><br>
+                        <small class="text-muted">${inbox.count} emails</small>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary rounded-pill">${inbox.count}</span>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="deleteInbox('${inbox.email}')">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 `;
+                
+                inboxDiv.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        loadEmails(inbox.email);
+                    }
+                });
+                
+                container.appendChild(inboxDiv);
             });
-            listContainer.innerHTML = html;
         }
         
-        function unsubscribeFromEmailUI(email) {
-            unsubscribeFromEmail(email);
-            updateSubscribedEmailsList();
-            showAlert(`Unsubscribed from ${email}`, 'info');
+        // Load emails for inbox
+        async function loadEmails(email) {
+            try {
+                const response = await fetch(`/inbox/${email}?key=supersecretapikey123`);
+                const emails = await response.json();
+                displayEmails(email, emails);
+            } catch (error) {
+                console.error('Error loading emails:', error);
+            }
         }
         
-        // Alert system
-        function showAlert(message, type = 'info') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertId = 'alert-' + Date.now();
+        // Display emails
+        function displayEmails(email, emails) {
+            const emailDisplay = document.getElementById('emailDisplay');
+            const emailList = document.getElementById('emailList');
+            const noEmailSelected = document.getElementById('noEmailSelected');
             
-            const alertHTML = `
-                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            emailDisplay.style.display = 'block';
+            noEmailSelected.style.display = 'none';
+            
+            emailDisplay.querySelector('.card-header h5').innerHTML = `Inbox: ${email} <small class="text-muted">(${emails.length} emails)</small>`;
+            
+            emailList.innerHTML = '';
+            
+            emails.forEach(emailData => {
+                const emailElement = createEmailElement(emailData);
+                emailList.appendChild(emailElement);
+            });
+        }
+        
+        // Show email content
+        function showEmailContent(email) {
+            const modal = new bootstrap.Modal(document.createElement('div'));
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'modal fade';
+            modalDiv.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Email Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="email-content">
+                                <p><strong>From:</strong> ${email.from}</p>
+                                <p><strong>Subject:</strong> ${email.subject || 'No Subject'}</p>
+                                <p><strong>Date:</strong> ${new Date(email.timestamp).toLocaleString()}</p>
+                                <hr>
+                                <div>${email.body || 'No content'}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
             
-            alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+            document.body.appendChild(modalDiv);
+            const bsModal = new bootstrap.Modal(modalDiv);
+            bsModal.show();
             
-            setTimeout(() => {
-                const alertElement = document.getElementById(alertId);
-                if (alertElement) {
-                    alertElement.remove();
-                }
-            }, 5000);
+            modalDiv.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modalDiv);
+            });
         }
+        
+        // Delete inbox
+        async function deleteInbox(email) {
+            if (!confirm(`Are you sure you want to delete inbox ${email}?`)) return;
+            
+            try {
+                const response = await fetch(`/inbox/${email}?key=supersecretapikey123`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadInboxes();
+                    document.getElementById('emailDisplay').style.display = 'none';
+                    document.getElementById('noEmailSelected').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error deleting inbox:', error);
+            }
+        }
+        
+        // Update TTL configuration
+        async function updateTTLConfig() {
+            const autoTTL = document.getElementById('autoTTL').value;
+            const manualTTL = document.getElementById('manualTTL').value;
+            
+            try {
+                const response = await fetch('/admin/ttl', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ autoTTL: parseInt(autoTTL), manualTTL: parseInt(manualTTL) })
+                });
+                
+                if (response.ok) {
+                    alert('TTL configuration updated successfully!');
+                }
+            } catch (error) {
+                console.error('Error updating TTL config:', error);
+            }
+        }
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeWebSocket();
+            loadStats();
+            loadDomains();
+            loadInboxes();
+            setupAutoRefresh();
+        });
     </script>
 </body>
 </html>

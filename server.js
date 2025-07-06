@@ -150,13 +150,25 @@ io.on('connection', (socket) => {
 
 // Function to broadcast new email notifications
 function broadcastNewEmail(email, emailData) {
+    // Prepare complete email data for immediate display
+    const completeEmailData = {
+        id: emailData.id || Date.now().toString(),
+        from: emailData.from,
+        subject: emailData.subject,
+        body: emailData.body,
+        timestamp: emailData.timestamp || new Date().toISOString(),
+        attachments: emailData.attachments || []
+    };
+    
     io.to(`email:${email}`).emit('new-email', {
         email,
-        message: emailData,
+        message: completeEmailData,
         timestamp: new Date().toISOString(),
-        count: 1
+        count: 1,
+        // ✨ NEW: Full email data for immediate inbox display
+        fullEmailData: completeEmailData
     });
-    logger.info(`Broadcasted new email notification for: ${email}`);
+    logger.info(`Broadcasted new email notification with full data for: ${email}`);
 }
 
 // Input validation middleware
