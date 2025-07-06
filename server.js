@@ -13,7 +13,7 @@ const config = {
     port: process.env.PORT || 3001,
     apiKey: 'supersecretapikey123',
     redis: {
-        url: 'redis://:we1we2we3@127.0.0.1:6379',
+        url: 'redis://:we1we2we3@165.22.97.51:6379',
         retryAttempts: 5,
         retryDelay: 2000
     }
@@ -56,25 +56,11 @@ async function connectRedis() {
         try {
             connectionAttempts++;
             logger.info(`Redis connection attempt ${attempt}/${config.redis.retryAttempts}`);
-            
+
             redisClient = redis.createClient({
-                url: config.redis.url,
-                retry_strategy: (options) => {
-                    if (options.error && options.error.code === 'ECONNREFUSED') {
-                        logger.error('Redis server refused connection');
-                    }
-                    if (options.total_retry_time > 1000 * 60 * 60) {
-                        logger.error('Redis retry time exhausted');
-                        return new Error('Retry time exhausted');
-                    }
-                    if (options.attempt > 10) {
-                        return undefined;
-                    }
-                    return Math.min(options.attempt * 100, 3000);
-                }
+                url: config.redis.url
             });
 
-            // Redis event handlers
             redisClient.on('error', (err) => {
                 logger.error(`Redis Client Error: ${err.message}`);
                 redisConnected = false;
@@ -82,8 +68,6 @@ async function connectRedis() {
 
             redisClient.on('connect', () => {
                 logger.info('✅ Redis Client Connected Successfully');
-                redisConnected = true;
-                connectionAttempts = 0;
             });
 
             redisClient.on('ready', () => {
@@ -100,41 +84,23 @@ async function connectRedis() {
                 logger.info('🔄 Redis Client Reconnecting...');
             });
 
-            // Test connection
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Connection timeout'));
-                }, 5000);
-                
-                redisClient.on('ready', () => {
-                    clearTimeout(timeout);
-                    resolve();
-                });
-                
-                redisClient.on('error', (err) => {
-                    clearTimeout(timeout);
-                    reject(err);
-                });
-            });
-
+            await redisClient.connect(); // <-- এই লাইন মূল ফিক্স
             logger.info('✅ Redis connection established successfully');
             return;
-            
+
         } catch (error) {
             logger.error(`Redis connection attempt ${attempt} failed: ${error.message}`);
-            
             if (attempt === config.redis.retryAttempts) {
                 logger.warn('🔄 All Redis connection attempts failed. Running in standalone mode.');
-                logger.warn('📧 Email persistence will be disabled until Redis is available.');
                 redisConnected = false;
                 return;
             }
-            
             logger.info(`⏳ Waiting ${config.redis.retryDelay}ms before next attempt...`);
             await new Promise(resolve => setTimeout(resolve, config.redis.retryDelay));
         }
     }
 }
+
 
 // Initialize Redis connection
 connectRedis().catch(error => {
