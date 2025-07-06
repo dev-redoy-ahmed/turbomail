@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TurboMail Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .admin-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            margin: 20px 0;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+        }
+        .api-endpoint {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .method-badge {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        .method-get { background-color: #28a745; color: white; }
+        .method-delete { background-color: #dc3545; color: white; }
+        .domain-item {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="admin-container">
+            <div class="header">
+                <h1><i class="fas fa-envelope"></i> TurboMail Admin Panel</h1>
+                <p class="mb-0">Manage your temporary email API</p>
+            </div>
+            
+            <div class="p-4">
+                <!-- API Endpoints Section -->
+                <div class="row">
+                    <div class="col-12">
+                        <h3><i class="fas fa-api"></i> API Endpoints</h3>
+                        <div class="api-endpoints">
+                            <div class="api-endpoint">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="method-badge method-get">GET</span>
+                                        <strong>📩 Auto-generate random email</strong>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <code id="endpoint1">http://165.22.97.51:3001/generate?key=supersecretapikey123</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint1')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="api-endpoint">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="method-badge method-get">GET</span>
+                                        <strong>✍️ Manually generate email</strong>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <code id="endpoint2">http://165.22.97.51:3001/generate/manual?username=rahul&domain=oplex.online&key=supersecretapikey123</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint2')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="api-endpoint">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="method-badge method-get">GET</span>
+                                        <strong>📬 Get inbox for any email</strong>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <code id="endpoint3">http://165.22.97.51:3001/inbox/dd@oplex.online?key=supersecretapikey123</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint3')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="api-endpoint">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="method-badge method-get">GET</span>
+                                        <strong>📄 Get specific message from inbox (by index)</strong>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <code id="endpoint4">http://165.22.97.51:3001/inbox/dd@oplex.online/0?key=supersecretapikey123</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint4')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="api-endpoint">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="method-badge method-delete">DELETE</span>
+                                        <strong>🧹 Delete all messages from inbox</strong>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <code id="endpoint5">http://165.22.97.51:3001/delete/dd@oplex.online?key=supersecretapikey123</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint5')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="api-endpoint">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="method-badge method-delete">DELETE</span>
+                                        <strong>❌ Delete specific message by index</strong>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <code id="endpoint6">http://165.22.97.51:3001/delete/dd@oplex.online/0?key=supersecretapikey123</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint6')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- API Documentation Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h3><i class="fas fa-book"></i> API Usage Guide</h3>
+                        <div class="accordion" id="apiGuideAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingOne">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                        <i class="fas fa-key me-2"></i> API Key Authentication
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#apiGuideAccordion">
+                                    <div class="accordion-body">
+                                        <p><strong>API Key:</strong> <code>supersecretapikey123</code></p>
+                                        <p>সব API call এ এই key টি <code>?key=supersecretapikey123</code> হিসেবে query parameter এ দিতে হবে।</p>
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> 
+                                            যদি API key ভুল হয় বা না দেন, তাহলে <code>401 Unauthorized</code> error পাবেন।
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTwo">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                        <i class="fas fa-exclamation-circle me-2"></i> Common Error Codes
+                                    </button>
+                                </h2>
+                                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#apiGuideAccordion">
+                                    <div class="accordion-body">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Error Code</th>
+                                                    <th>Meaning</th>
+                                                    <th>Solution</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><span class="badge bg-danger">401</span></td>
+                                                    <td>Invalid API key</td>
+                                                    <td>সঠিক API key ব্যবহার করুন</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="badge bg-warning">400</span></td>
+                                                    <td>Bad Request</td>
+                                                    <td>Required parameters চেক করুন</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="badge bg-info">404</span></td>
+                                                    <td>Not Found</td>
+                                                    <td>Email বা message index চেক করুন</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span class="badge bg-secondary">503</span></td>
+                                                    <td>Redis not connected</td>
+                                                    <td>Redis server চালু করুন</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingThree">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                        <i class="fas fa-code me-2"></i> Example Usage in Apps
+                                    </button>
+                                </h2>
+                                <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#apiGuideAccordion">
+                                    <div class="accordion-body">
+                                        <h6>JavaScript Example:</h6>
+                                        <pre class="bg-dark text-light p-3 rounded"><code>// Generate random email
+fetch('http://165.22.97.51:3001/generate?key=supersecretapikey123')
+  .then(response => response.json())
+  .then(data => console.log(data.email));
+
+// Get inbox
+fetch('http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123')
+  .then(response => response.json())
+  .then(data => console.log(data.messages));</code></pre>
+                                        
+                                        <h6 class="mt-3">cURL Example:</h6>
+                                        <pre class="bg-dark text-light p-3 rounded"><code>curl "http://165.22.97.51:3001/generate?key=supersecretapikey123"
+curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- Domain Management Section -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3><i class="fas fa-globe"></i> Domain Management</h3>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <input type="text" id="newDomain" class="form-control" placeholder="Enter new domain (e.g., example.com)">
+                                <button class="btn btn-custom" onclick="addDomain()">
+                                    <i class="fas fa-plus"></i> Add Domain
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="domainsList">
+                            <!-- Domains will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h3><i class="fas fa-tools"></i> API Testing</h3>
+                        
+                        <!-- Configuration Section -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-cog"></i> API Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="serverUrl" class="form-label"><strong>Server URL:</strong></label>
+                                    <input type="text" id="serverUrl" class="form-control" value="http://165.22.97.51:3001" placeholder="Enter Server URL">
+                                    <small class="text-muted">Change this if testing on different server</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="apiKey" class="form-label"><strong>API Key:</strong></label>
+                                    <div class="input-group">
+                                        <input type="text" id="apiKey" class="form-control" value="supersecretapikey123" placeholder="Enter API Key">
+                                        <button class="btn btn-outline-info" onclick="copyApiKey()">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">This API key is required for all API calls</small>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" onclick="saveConfig()">
+                                        <i class="fas fa-save"></i> Save Config
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" onclick="resetConfig()">
+                                        <i class="fas fa-undo"></i> Reset
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Test Email Input -->
+                        <div class="mb-3">
+                            <label for="testEmail" class="form-label"><strong>Test Email:</strong></label>
+                            <input type="email" id="testEmail" class="form-control" placeholder="Enter email to test inbox (e.g., dd@oplex.online)">
+                        </div>
+                        
+                        <!-- API Status Check -->
+                        <div class="mb-3">
+                            <button class="btn btn-info w-100 mb-2" onclick="checkAllApiStatus()">
+                                <i class="fas fa-heartbeat"></i> Check All API Status
+                            </button>
+                            <div id="apiStatus" class="mb-3">
+                                <!-- API status will appear here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Test Buttons -->
+                        <div class="mb-3">
+                            <div class="btn-group-vertical w-100" role="group">
+                                <button class="btn btn-custom mb-2" onclick="testGenerateEmail()">
+                                    <i class="fas fa-random"></i> Test Generate Random Email
+                                </button>
+                                <button class="btn btn-custom mb-2" onclick="testManualEmail()">
+                                    <i class="fas fa-edit"></i> Test Manual Email Generation
+                                </button>
+                                <button class="btn btn-custom mb-2" onclick="testGetInbox()">
+                                    <i class="fas fa-inbox"></i> Test Get Inbox
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="clearResults()">
+                                    <i class="fas fa-trash"></i> Clear Results
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="testResults" class="mt-3">
+                            <!-- Test results will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load domains and config on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            loadDomains();
+            updateEndpoints();
+            
+            // Update endpoints when config changes
+            document.getElementById('apiKey').addEventListener('input', updateEndpoints);
+            document.getElementById('serverUrl').addEventListener('input', updateEndpoints);
+        });
+        
+        async function loadDomains() {
+            try {
+                const response = await fetch('/admin/domains');
+                const data = await response.json();
+                displayDomains(data.domains);
+            } catch (error) {
+                console.error('Error loading domains:', error);
+            }
+        }
+        
+        function displayDomains(domains) {
+            const domainsList = document.getElementById('domainsList');
+            domainsList.innerHTML = '';
+            
+            domains.forEach(domain => {
+                const domainItem = document.createElement('div');
+                domainItem.className = 'domain-item';
+                domainItem.innerHTML = `
+                    <span><i class="fas fa-globe"></i> ${domain}</span>
+                    <button class="btn btn-sm btn-danger" onclick="deleteDomain('${domain}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                domainsList.appendChild(domainItem);
+            });
+        }
+        
+        async function addDomain() {
+            const newDomainInput = document.getElementById('newDomain');
+            const domain = newDomainInput.value.trim();
+            
+            if (!domain) {
+                alert('Please enter a domain name');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/domains', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ domain: domain })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    newDomainInput.value = '';
+                    displayDomains(data.domains);
+                    showAlert('Domain added successfully!', 'success');
+                } else {
+                    showAlert('Error adding domain: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error adding domain: ' + error.message, 'danger');
+            }
+        }
+        
+        async function deleteDomain(domain) {
+            if (!confirm(`Are you sure you want to delete domain: ${domain}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/domains/${domain}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    displayDomains(data.domains);
+                    showAlert('Domain deleted successfully!', 'success');
+                } else {
+                    showAlert('Error deleting domain: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error deleting domain: ' + error.message, 'danger');
+            }
+        }
+        
+        // Configuration management
+        function loadConfig() {
+            const savedConfig = localStorage.getItem('turbomail_config');
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                document.getElementById('apiKey').value = config.apiKey || 'supersecretapikey123';
+                document.getElementById('serverUrl').value = config.serverUrl || 'http://165.22.97.51:3001';
+            }
+        }
+        
+        function saveConfig() {
+            const config = {
+                apiKey: document.getElementById('apiKey').value.trim(),
+                serverUrl: document.getElementById('serverUrl').value.trim()
+            };
+            localStorage.setItem('turbomail_config', JSON.stringify(config));
+            updateEndpoints();
+            showAlert('Configuration saved successfully!', 'success');
+        }
+        
+        function resetConfig() {
+            document.getElementById('apiKey').value = 'supersecretapikey123';
+            document.getElementById('serverUrl').value = 'http://165.22.97.51:3001';
+            localStorage.removeItem('turbomail_config');
+            updateEndpoints();
+            showAlert('Configuration reset to defaults!', 'info');
+        }
+        
+        function getApiKey() {
+            return document.getElementById('apiKey').value.trim();
+        }
+        
+        function getServerUrl() {
+            return document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
+        }
+        
+        function copyApiKey() {
+            const apiKeyInput = document.getElementById('apiKey');
+            apiKeyInput.select();
+            document.execCommand('copy');
+            showAlert('API Key copied to clipboard!', 'info');
+        }
+        
+        function copyEndpoint(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('API endpoint copied to clipboard!', 'info');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showAlert('API endpoint copied to clipboard!', 'info');
+            });
+        }
+        
+        function updateEndpoints() {
+            const serverUrl = getServerUrl();
+            const apiKey = getApiKey();
+            
+            document.getElementById('endpoint1').textContent = `${serverUrl}/generate?key=${apiKey}`;
+            document.getElementById('endpoint2').textContent = `${serverUrl}/generate/manual?username=rahul&domain=oplex.online&key=${apiKey}`;
+            document.getElementById('endpoint3').textContent = `${serverUrl}/inbox/dd@oplex.online?key=${apiKey}`;
+            document.getElementById('endpoint4').textContent = `${serverUrl}/inbox/dd@oplex.online/0?key=${apiKey}`;
+            document.getElementById('endpoint5').textContent = `${serverUrl}/delete/dd@oplex.online?key=${apiKey}`;
+            document.getElementById('endpoint6').textContent = `${serverUrl}/delete/dd@oplex.online/0?key=${apiKey}`;
+        }
+        
+        async function testGenerateEmail() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showAlert('Please enter an API key', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${getServerUrl()}/generate?key=${apiKey}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('testResults');
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Random Email Generated Successfully!</h5>
+                            <p><strong>Generated Email:</strong> <code>${data.email}</code></p>
+                            <p><strong>API URL:</strong> <code>/generate?key=${apiKey}</code></p>
+                            <small class="text-muted">You can now use this email for testing</small>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-circle"></i> API Error</h5>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                const resultsDiv = document.getElementById('testResults');
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle"></i> Network Error</h5>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testManualEmail() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showAlert('Please enter an API key', 'warning');
+                return;
+            }
+            
+            const username = prompt('Enter username (e.g., rahul):');
+            const domain = prompt('Enter domain (e.g., oplex.online):');
+            
+            if (!username || !domain) {
+                showAlert('Username and domain are required', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${getServerUrl()}/generate/manual?username=${username}&domain=${domain}&key=${apiKey}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('testResults');
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Manual Email Generated Successfully!</h5>
+                            <p><strong>Generated Email:</strong> <code>${data.email}</code></p>
+                            <p><strong>API URL:</strong> <code>/generate/manual?username=${username}&domain=${domain}&key=${apiKey}</code></p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-circle"></i> API Error</h5>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                const resultsDiv = document.getElementById('testResults');
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle"></i> Network Error</h5>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testGetInbox() {
+            const apiKey = getApiKey();
+            const testEmail = document.getElementById('testEmail').value.trim();
+            
+            if (!apiKey) {
+                showAlert('Please enter an API key', 'warning');
+                return;
+            }
+            
+            if (!testEmail) {
+                showAlert('Please enter an email address to test', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${getServerUrl()}/inbox/${testEmail}?key=${apiKey}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('testResults');
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Inbox Retrieved Successfully!</h5>
+                            <p><strong>Email:</strong> <code>${data.email}</code></p>
+                            <p><strong>Messages Count:</strong> ${data.messages.length}</p>
+                            <p><strong>API URL:</strong> <code>/inbox/${testEmail}?key=${apiKey}</code></p>
+                            ${data.messages.length > 0 ? 
+                                `<div class="mt-2"><strong>Latest Message:</strong><br><pre class="bg-light p-2 rounded">${JSON.stringify(data.messages[0], null, 2)}</pre></div>` : 
+                                '<p class="text-muted">No messages found in inbox</p>'
+                            }
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-circle"></i> API Error</h5>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            ${response.status === 503 ? '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> Redis server is not connected</p>' : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                const resultsDiv = document.getElementById('testResults');
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle"></i> Network Error</h5>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function checkAllApiStatus() {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showAlert('Please enter an API key', 'warning');
+                return;
+            }
+            
+            const statusDiv = document.getElementById('apiStatus');
+            statusDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Checking API status...</div>';
+            
+            const serverUrl = getServerUrl();
+             const apis = [
+                 { name: 'Generate Random Email', url: `${serverUrl}/generate?key=${apiKey}`, method: 'GET' },
+                 { name: 'Manual Email Generation', url: `${serverUrl}/generate/manual?username=test&domain=oplex.online&key=${apiKey}`, method: 'GET' },
+                 { name: 'Get Inbox', url: `${serverUrl}/inbox/test@oplex.online?key=${apiKey}`, method: 'GET' },
+                 { name: 'Admin Domains', url: `${serverUrl}/admin/domains`, method: 'GET' }
+             ];
+            
+            let statusHtml = '<div class="card"><div class="card-header"><strong>API Status Check Results</strong></div><div class="card-body">';
+            
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api.url);
+                    const statusIcon = response.ok ? 
+                        '<i class="fas fa-check-circle text-success"></i>' : 
+                        '<i class="fas fa-times-circle text-danger"></i>';
+                    const statusText = response.ok ? 'Working' : `Error ${response.status}`;
+                    const statusClass = response.ok ? 'text-success' : 'text-danger';
+                    
+                    statusHtml += `
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <span>${api.name}</span>
+                            <span class="${statusClass}">${statusIcon} ${statusText}</span>
+                        </div>
+                    `;
+                } catch (error) {
+                    statusHtml += `
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <span>${api.name}</span>
+                            <span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Network Error</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            statusHtml += '</div></div>';
+            statusDiv.innerHTML = statusHtml;
+        }
+        
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('apiStatus').innerHTML = '';
+        }
+        
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.admin-container .p-4').insertBefore(alertDiv, document.querySelector('.admin-container .p-4').firstChild);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
