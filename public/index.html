@@ -3,1112 +3,649 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TurboMail Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>TurboMail - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #00d4ff;
+            --accent-secondary: #ff6b6b;
+            --border-color: #333333;
+            --hover-bg: #333333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
         }
-        .admin-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            margin: 20px 0;
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: all 0.3s ease;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px 15px 0 0;
+        
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
             text-align: center;
         }
-        .api-endpoint {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: 'Courier New', monospace;
+        
+        .sidebar-logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-decoration: none;
         }
-        .method-badge {
-            font-weight: bold;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
+        
+        .sidebar-nav {
+            padding: 1rem 0;
         }
-        .method-get { background-color: #28a745; color: white; }
-        .method-delete { background-color: #dc3545; color: white; }
-        .domain-item {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 5px 0;
+        
+        .nav-item {
+            margin: 0.5rem 1rem;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--hover-bg);
+            color: var(--accent-primary);
+            transform: translateX(5px);
+        }
+        
+        .nav-link i {
+            margin-right: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .btn-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 2rem;
+            background-color: var(--bg-primary);
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            color: var(--text-primary);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-header {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 16px 16px 0 0 !important;
+            padding: 1.5rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #0099cc);
             border: none;
-            color: white;
+            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
             transition: all 0.3s ease;
         }
-        .btn-custom:hover {
+        
+        .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            color: white;
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-secondary), #cc0000);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffaa00, #ff8800);
+            border: none;
+            border-radius: 10px;
+        }
+        
+        /* Form Controls */
+        .form-control {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+        }
+        
+        .form-control:focus {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25);
+        }
+        
+        .form-control::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Section Visibility */
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+        
+        /* Toast Notifications */
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        /* Table Styles */
+        .table-dark {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+        }
+        
+        .table-dark td, .table-dark th {
+            border-color: var(--border-color);
+        }
+        
+        /* API Endpoint Styles */
+        .api-endpoint {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .method-badge {
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-right: 1rem;
+        }
+        
+        .method-get { background-color: #28a745; color: white; }
+        .method-post { background-color: #007bff; color: white; }
+        .method-delete { background-color: #dc3545; color: white; }
+        
+        .domain-item {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="admin-container">
-            <div class="header">
-                <h1><i class="fas fa-envelope"></i> TurboMail Admin Panel</h1>
-                <p class="mb-0">Manage your temporary email API</p>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="#" class="sidebar-logo">
+                <i class="fas fa-envelope"></i> TurboMail
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item">
+                <a href="#" class="nav-link active" onclick="showSection('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </a>
             </div>
-            
-            <div class="p-4">
-                <!-- API Endpoints Section -->
-                <div class="row">
-                    <div class="col-12">
-                        <h3><i class="fas fa-api"></i> API Endpoints</h3>
-                        <div class="api-endpoints">
-                            <div class="api-endpoint">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="method-badge method-get">GET</span>
-                                        <strong>📩 Auto-generate random email</strong>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <code id="endpoint1">http://165.22.97.51:3001/generate?key=supersecretapikey123</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint1')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="api-endpoint">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="method-badge method-get">GET</span>
-                                        <strong>✍️ Manually generate email</strong>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <code id="endpoint2">http://165.22.97.51:3001/generate/manual?username=rahul&domain=oplex.online&key=supersecretapikey123</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint2')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="api-endpoint">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="method-badge method-get">GET</span>
-                                        <strong>📬 Get inbox for any email</strong>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <code id="endpoint3">http://165.22.97.51:3001/inbox/dd@oplex.online?key=supersecretapikey123</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint3')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="api-endpoint">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="method-badge method-get">GET</span>
-                                        <strong>📄 Get specific message from inbox (by index)</strong>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <code id="endpoint4">http://165.22.97.51:3001/inbox/dd@oplex.online/0?key=supersecretapikey123</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint4')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="api-endpoint">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="method-badge method-delete">DELETE</span>
-                                        <strong>🧹 Delete all messages from inbox</strong>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <code id="endpoint5">http://165.22.97.51:3001/delete/dd@oplex.online?key=supersecretapikey123</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint5')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="api-endpoint">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="method-badge method-delete">DELETE</span>
-                                        <strong>❌ Delete specific message by index</strong>
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <code id="endpoint6">http://165.22.97.51:3001/delete/dd@oplex.online/0?key=supersecretapikey123</code>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyEndpoint('endpoint6')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <hr class="my-4">
-                
-                <!-- API Documentation Section -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h3><i class="fas fa-book"></i> API Usage Guide</h3>
-                        <div class="accordion" id="apiGuideAccordion">
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="headingOne">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                                        <i class="fas fa-key me-2"></i> API Key Authentication
-                                    </button>
-                                </h2>
-                                <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#apiGuideAccordion">
-                                    <div class="accordion-body">
-                                        <p><strong>API Key:</strong> <code>supersecretapikey123</code></p>
-                                        <p>সব API call এ এই key টি <code>?key=supersecretapikey123</code> হিসেবে query parameter এ দিতে হবে।</p>
-                                        <div class="alert alert-warning">
-                                            <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> 
-                                            যদি API key ভুল হয় বা না দেন, তাহলে <code>401 Unauthorized</code> error পাবেন।
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="headingTwo">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
-                                        <i class="fas fa-exclamation-circle me-2"></i> Common Error Codes
-                                    </button>
-                                </h2>
-                                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#apiGuideAccordion">
-                                    <div class="accordion-body">
-                                        <table class="table table-striped">
-                                            <thead>
-                                                <tr>
-                                                    <th>Error Code</th>
-                                                    <th>Meaning</th>
-                                                    <th>Solution</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td><span class="badge bg-danger">401</span></td>
-                                                    <td>Invalid API key</td>
-                                                    <td>সঠিক API key ব্যবহার করুন</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><span class="badge bg-warning">400</span></td>
-                                                    <td>Bad Request</td>
-                                                    <td>Required parameters চেক করুন</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><span class="badge bg-info">404</span></td>
-                                                    <td>Not Found</td>
-                                                    <td>Email বা message index চেক করুন</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><span class="badge bg-secondary">503</span></td>
-                                                    <td>Redis not connected</td>
-                                                    <td>Redis server চালু করুন</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="headingThree">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
-                                        <i class="fas fa-code me-2"></i> Example Usage in Apps
-                                    </button>
-                                </h2>
-                                <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#apiGuideAccordion">
-                                    <div class="accordion-body">
-                                        <h6>JavaScript Example:</h6>
-                                        <pre class="bg-dark text-light p-3 rounded"><code>// Generate random email
-fetch('http://165.22.97.51:3001/generate?key=supersecretapikey123')
-  .then(response => response.json())
-  .then(data => console.log(data.email));
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showSection('api-endpoints')">
+                    <i class="fas fa-code"></i>
+                    API Endpoints
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showSection('domains')">
+                    <i class="fas fa-globe"></i>
+                    Domain Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showSection('ttl-management')">
+                    <i class="fas fa-clock"></i>
+                    TTL Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showSection('notifications')">
+                    <i class="fas fa-bell"></i>
+                    Notifications
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showSection('settings')">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+        </nav>
+    </div>
 
-// Get inbox
-fetch('http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123')
-  .then(response => response.json())
-  .then(data => console.log(data.messages));</code></pre>
-                                        
-                                        <h6 class="mt-3">cURL Example:</h6>
-                                        <pre class="bg-dark text-light p-3 rounded"><code>curl "http://165.22.97.51:3001/generate?key=supersecretapikey123"
-curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"</code></pre>
-                                    </div>
-                                </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">
+                <i class="fas fa-chart-bar"></i> Admin Dashboard
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-outline-light btn-sm" onclick="refreshStats()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user"></i> Admin
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog"></i> Profile</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="content">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="content-section active">
+                <h2 class="mb-4"><i class="fas fa-chart-bar"></i> System Overview</h2>
+                
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalInboxes">-</div>
+                        <div class="stat-label">Total Inboxes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeInboxes">-</div>
+                        <div class="stat-label">Active Inboxes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="emailsStored">-</div>
+                        <div class="stat-label">Emails Stored</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="redisMemory">-</div>
+                        <div class="stat-label">Redis Memory</div>
+                    </div>
+                </div>
+                
+                <!-- Redis Performance -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-database"></i> Redis Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <small class="text-muted">Status:</small>
+                                <div id="redisStatus" class="fw-bold">-</div>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Response Time:</small>
+                                <div id="redisResponseTime" class="fw-bold">-</div>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Version:</small>
+                                <div id="redisVersion" class="fw-bold">-</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                                <label class="form-check-label" for="autoRefresh">
+                                    Auto-refresh every 5 seconds
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Endpoints Section -->
+            <div id="api-endpoints" class="content-section">
+                <h2 class="mb-4"><i class="fas fa-code"></i> API Endpoints</h2>
+                
+                <!-- Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog"></i> API Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Server URL:</label>
+                                <input type="text" id="serverUrl" class="form-control" value="http://localhost:3001">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">API Key:</label>
+                                <input type="text" id="apiKey" class="form-control" value="supersecretapikey123">
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <hr class="my-4">
+                <!-- Endpoints List -->
+                <div class="api-endpoint">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="method-badge method-get">GET</span>
+                            <strong>📩 Auto-generate random email</strong>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <code id="endpoint1">http://localhost:3001/generate?key=supersecretapikey123</code>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyEndpoint('endpoint1')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
                 
-                <!-- Domain Management Section -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <h3><i class="fas fa-globe"></i> Domain Management</h3>
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <input type="text" id="newDomain" class="form-control" placeholder="Enter new domain (e.g., example.com)">
-                                <button class="btn btn-custom" onclick="addDomain()">
-                                    <i class="fas fa-plus"></i> Add Domain
-                                </button>
-                            </div>
+                <div class="api-endpoint">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="method-badge method-post">POST</span>
+                            <strong>📧 Create manual email</strong>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <code id="endpoint2">http://localhost:3001/generate/manual</code>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyEndpoint('endpoint2')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="api-endpoint">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="method-badge method-get">GET</span>
+                            <strong>📬 Get inbox messages</strong>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <code id="endpoint3">http://localhost:3001/inbox/{email}?key=supersecretapikey123</code>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyEndpoint('endpoint3')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Domain Management Section -->
+            <div id="domains" class="content-section">
+                <h2 class="mb-4"><i class="fas fa-globe"></i> Domain Management</h2>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-plus"></i> Add New Domain</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="newDomain" class="form-control" placeholder="example.com">
+                            <button class="btn btn-primary" onclick="addDomain()">
+                                <i class="fas fa-plus"></i> Add Domain
+                            </button>
                         </div>
                         
                         <div id="domainsList">
                             <!-- Domains will be loaded here -->
                         </div>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <h3><i class="fas fa-chart-bar"></i> System Dashboard</h3>
-                        <div class="card mb-3">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0"><i class="fas fa-tachometer-alt"></i> System Statistics</h6>
-                                <button class="btn btn-sm btn-outline-primary" onclick="refreshStats()">
-                                    <i class="fas fa-sync-alt"></i> Refresh
-                                </button>
+                </div>
+            </div>
+
+            <!-- TTL Management Section -->
+            <div id="ttl-management" class="content-section">
+                <h2 class="mb-4"><i class="fas fa-clock"></i> TTL Management</h2>
+                
+                <!-- TTL Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cog"></i> TTL Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Auto-generated emails TTL:</label>
+                                <div class="input-group">
+                                    <input type="number" id="autoTTL" class="form-control" value="3600" min="60">
+                                    <span class="input-group-text">seconds</span>
+                                </div>
+                                <small class="text-muted">Default: 1 hour (3600 seconds)</small>
                             </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card bg-primary text-white">
-                                            <div class="card-body text-center">
-                                                <h4 id="totalInboxes" class="mb-1">-</h4>
-                                                <small>Total Inboxes</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card bg-success text-white">
-                                            <div class="card-body text-center">
-                                                <h4 id="activeInboxes" class="mb-1">-</h4>
-                                                <small>Active Inboxes</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card bg-info text-white">
-                                            <div class="card-body text-center">
-                                                <h4 id="emailsStored" class="mb-1">-</h4>
-                                                <small>Emails Stored</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card bg-warning text-white">
-                                            <div class="card-body text-center">
-                                                <h4 id="redisMemory" class="mb-1">-</h4>
-                                                <small>Redis Memory</small>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Manual emails TTL:</label>
+                                <div class="input-group">
+                                    <input type="number" id="manualTTL" class="form-control" value="2592000" min="3600">
+                                    <span class="input-group-text">seconds</span>
                                 </div>
-                                
-                                <div class="mt-3">
-                                    <h6><i class="fas fa-database"></i> Redis Performance</h6>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <small class="text-muted">Status:</small>
-                                            <div id="redisStatus" class="fw-bold">-</div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <small class="text-muted">Response Time:</small>
-                                            <div id="redisResponseTime" class="fw-bold">-</div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <small class="text-muted">Version:</small>
-                                            <div id="redisVersion" class="fw-bold">-</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
-                                        <label class="form-check-label" for="autoRefresh">
-                                            Auto-refresh every 5 seconds
-                                        </label>
-                                    </div>
-                                </div>
+                                <small class="text-muted">Default: 30 days (2592000 seconds)</small>
                             </div>
                         </div>
-                        
-                        <h3><i class="fas fa-clock"></i> TTL Management</h3>
-                        
-                        <!-- TTL Configuration -->
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-cog"></i> TTL Configuration</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Auto-generated emails TTL:</strong></label>
-                                    <div class="input-group">
-                                        <input type="number" id="autoTTL" class="form-control" value="3600" min="60">
-                                        <span class="input-group-text">seconds</span>
-                                    </div>
-                                    <small class="text-muted">Default: 1 hour (3600 seconds)</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Manual emails TTL:</strong></label>
-                                    <div class="input-group">
-                                        <input type="number" id="manualTTL" class="form-control" value="2592000" min="3600">
-                                        <span class="input-group-text">seconds</span>
-                                    </div>
-                                    <small class="text-muted">Default: 30 days (2592000 seconds)</small>
-                                </div>
-                                
-                                <button class="btn btn-custom" onclick="updateTTLConfig()">
-                                    <i class="fas fa-save"></i> Update TTL Config
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Individual Email TTL Management -->
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-envelope"></i> Email TTL Control</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>Email Address:</strong></label>
-                                    <input type="email" id="emailTTL" class="form-control" placeholder="user@domain.com">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label"><strong>New TTL (seconds):</strong></label>
-                                    <input type="number" id="newTTL" class="form-control" placeholder="3600" min="0">
-                                    <small class="text-muted">Set to 0 to remove expiration</small>
-                                </div>
-                                
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-warning" onclick="updateEmailTTL()">
-                                        <i class="fas fa-clock"></i> Update TTL
-                                    </button>
-                                    <button class="btn btn-danger" onclick="deleteEmailInbox()">
-                                        <i class="fas fa-trash"></i> Delete Inbox
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <button class="btn btn-primary mt-3" onclick="updateTTLConfig()">
+                            <i class="fas fa-save"></i> Update TTL Config
+                        </button>
                     </div>
                 </div>
                 
-                <hr class="my-4">
-                
-                <div class="row">
-                    <div class="col-md-12">
-                        <h3><i class="fas fa-tools"></i> API Testing</h3>
-                        
-                        <!-- Configuration Section -->
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-cog"></i> API Configuration</h6>
+                <!-- Individual Email TTL -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-envelope"></i> Individual Email TTL</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Email Address:</label>
+                                <input type="email" id="emailTTL" class="form-control" placeholder="user@domain.com">
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label for="serverUrl" class="form-label"><strong>Server URL:</strong></label>
-                                    <input type="text" id="serverUrl" class="form-control" value="http://165.22.97.51:3001" placeholder="Enter Server URL">
-                                    <small class="text-muted">Change this if testing on different server</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="apiKey" class="form-label"><strong>API Key:</strong></label>
-                                    <div class="input-group">
-                                        <input type="text" id="apiKey" class="form-control" value="supersecretapikey123" placeholder="Enter API Key">
-                                        <button class="btn btn-outline-info" onclick="copyApiKey()">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                    <small class="text-muted">This API key is required for all API calls</small>
-                                </div>
-                                
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-sm btn-outline-success" onclick="saveConfig()">
-                                        <i class="fas fa-save"></i> Save Config
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-warning" onclick="resetConfig()">
-                                        <i class="fas fa-undo"></i> Reset
-                                    </button>
-                                </div>
+                            <div class="col-md-4">
+                                <label class="form-label">TTL (seconds):</label>
+                                <input type="number" id="emailTTLValue" class="form-control" min="60">
                             </div>
-                        </div>
-                        
-                        <!-- Test Email Input -->
-                        <div class="mb-3">
-                            <label for="testEmail" class="form-label"><strong>Test Email:</strong></label>
-                            <input type="email" id="testEmail" class="form-control" placeholder="Enter email to test inbox (e.g., dd@oplex.online)">
-                        </div>
-                        
-                        <!-- API Status Check -->
-                        <div class="mb-3">
-                            <button class="btn btn-info w-100 mb-2" onclick="checkAllApiStatus()">
-                                <i class="fas fa-heartbeat"></i> Check All API Status
-                            </button>
-                            <div id="apiStatus" class="mb-3">
-                                <!-- API status will appear here -->
-                            </div>
-                        </div>
-                        
-                        <!-- Test Buttons -->
-                        <div class="mb-3">
-                            <div class="btn-group-vertical w-100" role="group">
-                                <button class="btn btn-custom mb-2" onclick="testGenerateEmail()">
-                                    <i class="fas fa-random"></i> Test Generate Random Email
-                                </button>
-                                <button class="btn btn-custom mb-2" onclick="testManualEmail()">
-                                    <i class="fas fa-edit"></i> Test Manual Email Generation
-                                </button>
-                                <button class="btn btn-custom mb-2" onclick="testGetInbox()">
-                                    <i class="fas fa-inbox"></i> Test Get Inbox
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="clearResults()">
-                                    <i class="fas fa-trash"></i> Clear Results
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-warning d-block w-100" onclick="updateEmailTTL()">
+                                    <i class="fas fa-clock"></i> Update
                                 </button>
                             </div>
                         </div>
                         
-                        <div id="testResults" class="mt-3">
-                            <!-- Test results will appear here -->
+                        <div class="row mt-3">
+                            <div class="col-md-10">
+                                <label class="form-label">Delete Email Inbox:</label>
+                                <input type="email" id="deleteEmail" class="form-control" placeholder="user@domain.com">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-danger d-block w-100" onclick="deleteEmailInbox()">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script>
-        // Load domains and config on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadConfig();
-            loadDomains();
-            loadTTLConfig();
-            updateEndpoints();
-            
-            // Initialize real-time features
-            initializeWebSocket();
-            addEmailSubscriptionUI();
-            
-            // Initialize dashboard
-            loadStats();
-            setupAutoRefresh();
-            
-            // Update endpoints when config changes
-            document.getElementById('apiKey').addEventListener('input', updateEndpoints);
-            document.getElementById('serverUrl').addEventListener('input', updateEndpoints);
-        });
-        
-        async function loadDomains() {
-            try {
-                const response = await fetch('/admin/domains');
-                const data = await response.json();
-                displayDomains(data.domains);
-            } catch (error) {
-                console.error('Error loading domains:', error);
-            }
-        }
-        
-        function displayDomains(domains) {
-            const domainsList = document.getElementById('domainsList');
-            domainsList.innerHTML = '';
-            
-            domains.forEach(domain => {
-                const domainItem = document.createElement('div');
-                domainItem.className = 'domain-item';
-                domainItem.innerHTML = `
-                    <span><i class="fas fa-globe"></i> ${domain}</span>
-                    <button class="btn btn-sm btn-danger" onclick="deleteDomain('${domain}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `;
-                domainsList.appendChild(domainItem);
-            });
-        }
-        
-        async function addDomain() {
-            const newDomainInput = document.getElementById('newDomain');
-            const domain = newDomainInput.value.trim();
-            
-            if (!domain) {
-                alert('Please enter a domain name');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/domains', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ domain: domain })
-                });
+
+            <!-- Notifications Section -->
+            <div id="notifications" class="content-section">
+                <h2 class="mb-4"><i class="fas fa-bell"></i> Real-time Notifications</h2>
                 
-                const data = await response.json();
-                if (data.success) {
-                    newDomainInput.value = '';
-                    displayDomains(data.domains);
-                    showAlert('Domain added successfully!', 'success');
-                } else {
-                    showAlert('Error adding domain: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Error adding domain: ' + error.message, 'danger');
-            }
-        }
-        
-        async function deleteDomain(domain) {
-            if (!confirm(`Are you sure you want to delete domain: ${domain}?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/admin/domains/${domain}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    displayDomains(data.domains);
-                    showAlert('Domain deleted successfully!', 'success');
-                } else {
-                    showAlert('Error deleting domain: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Error deleting domain: ' + error.message, 'danger');
-            }
-        }
-        
-        // Configuration management
-        function loadConfig() {
-            const savedConfig = localStorage.getItem('turbomail_config');
-            if (savedConfig) {
-                const config = JSON.parse(savedConfig);
-                document.getElementById('apiKey').value = config.apiKey || 'supersecretapikey123';
-                document.getElementById('serverUrl').value = config.serverUrl || 'http://165.22.97.51:3001';
-            }
-        }
-        
-        function saveConfig() {
-            const config = {
-                apiKey: document.getElementById('apiKey').value.trim(),
-                serverUrl: document.getElementById('serverUrl').value.trim()
-            };
-            localStorage.setItem('turbomail_config', JSON.stringify(config));
-            updateEndpoints();
-            showAlert('Configuration saved successfully!', 'success');
-        }
-        
-        function resetConfig() {
-            document.getElementById('apiKey').value = 'supersecretapikey123';
-            document.getElementById('serverUrl').value = 'http://165.22.97.51:3001';
-            localStorage.removeItem('turbomail_config');
-            updateEndpoints();
-            showAlert('Configuration reset to defaults!', 'info');
-        }
-        
-        function getApiKey() {
-            return document.getElementById('apiKey').value.trim();
-        }
-        
-        function getServerUrl() {
-            return document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
-        }
-        
-        function copyApiKey() {
-            const apiKeyInput = document.getElementById('apiKey');
-            apiKeyInput.select();
-            document.execCommand('copy');
-            showAlert('API Key copied to clipboard!', 'info');
-        }
-        
-        function copyEndpoint(elementId) {
-            const element = document.getElementById(elementId);
-            const text = element.textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                showAlert('API endpoint copied to clipboard!', 'info');
-            }).catch(() => {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showAlert('API endpoint copied to clipboard!', 'info');
-            });
-        }
-        
-        function updateEndpoints() {
-            const serverUrl = getServerUrl();
-            const apiKey = getApiKey();
-            
-            document.getElementById('endpoint1').textContent = `${serverUrl}/generate?key=${apiKey}`;
-            document.getElementById('endpoint2').textContent = `${serverUrl}/generate/manual?username=rahul&domain=oplex.online&key=${apiKey}`;
-            document.getElementById('endpoint3').textContent = `${serverUrl}/inbox/dd@oplex.online?key=${apiKey}`;
-            document.getElementById('endpoint4').textContent = `${serverUrl}/inbox/dd@oplex.online/0?key=${apiKey}`;
-            document.getElementById('endpoint5').textContent = `${serverUrl}/delete/dd@oplex.online?key=${apiKey}`;
-            document.getElementById('endpoint6').textContent = `${serverUrl}/delete/dd@oplex.online/0?key=${apiKey}`;
-        }
-        
-        async function testGenerateEmail() {
-            const apiKey = getApiKey();
-            if (!apiKey) {
-                showAlert('Please enter an API key', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${getServerUrl()}/generate?key=${apiKey}`);
-                const data = await response.json();
-                
-                const resultsDiv = document.getElementById('testResults');
-                if (response.ok) {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <h5><i class="fas fa-check-circle"></i> Random Email Generated Successfully!</h5>
-                            <p><strong>Generated Email:</strong> <code>${data.email}</code></p>
-                            <p><strong>API URL:</strong> <code>/generate?key=${apiKey}</code></p>
-                            <small class="text-muted">You can now use this email for testing</small>
-                        </div>
-                    `;
-                } else {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5><i class="fas fa-exclamation-circle"></i> API Error</h5>
-                            <p><strong>Error:</strong> ${data.error}</p>
-                            <p><strong>Status:</strong> ${response.status}</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                const resultsDiv = document.getElementById('testResults');
-                resultsDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h5><i class="fas fa-exclamation-circle"></i> Network Error</h5>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        async function testManualEmail() {
-            const apiKey = getApiKey();
-            if (!apiKey) {
-                showAlert('Please enter an API key', 'warning');
-                return;
-            }
-            
-            const username = prompt('Enter username (e.g., rahul):');
-            const domain = prompt('Enter domain (e.g., oplex.online):');
-            
-            if (!username || !domain) {
-                showAlert('Username and domain are required', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${getServerUrl()}/generate/manual?username=${username}&domain=${domain}&key=${apiKey}`);
-                const data = await response.json();
-                
-                const resultsDiv = document.getElementById('testResults');
-                if (response.ok) {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <h5><i class="fas fa-check-circle"></i> Manual Email Generated Successfully!</h5>
-                            <p><strong>Generated Email:</strong> <code>${data.email}</code></p>
-                            <p><strong>API URL:</strong> <code>/generate/manual?username=${username}&domain=${domain}&key=${apiKey}</code></p>
-                        </div>
-                    `;
-                } else {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5><i class="fas fa-exclamation-circle"></i> API Error</h5>
-                            <p><strong>Error:</strong> ${data.error}</p>
-                            <p><strong>Status:</strong> ${response.status}</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                const resultsDiv = document.getElementById('testResults');
-                resultsDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h5><i class="fas fa-exclamation-circle"></i> Network Error</h5>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        async function testGetInbox() {
-            const apiKey = getApiKey();
-            const testEmail = document.getElementById('testEmail').value.trim();
-            
-            if (!apiKey) {
-                showAlert('Please enter an API key', 'warning');
-                return;
-            }
-            
-            if (!testEmail) {
-                showAlert('Please enter an email address to test', 'warning');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${getServerUrl()}/inbox/${testEmail}?key=${apiKey}`);
-                const data = await response.json();
-                
-                const resultsDiv = document.getElementById('testResults');
-                if (response.ok) {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-success">
-                            <h5><i class="fas fa-check-circle"></i> Inbox Retrieved Successfully!</h5>
-                            <p><strong>Email:</strong> <code>${data.email}</code></p>
-                            <p><strong>Messages Count:</strong> ${data.messages.length}</p>
-                            <p><strong>API URL:</strong> <code>/inbox/${testEmail}?key=${apiKey}</code></p>
-                            ${data.messages.length > 0 ? 
-                                `<div class="mt-2"><strong>Latest Message:</strong><br><pre class="bg-light p-2 rounded">${JSON.stringify(data.messages[0], null, 2)}</pre></div>` : 
-                                '<p class="text-muted">No messages found in inbox</p>'
-                            }
-                        </div>
-                    `;
-                } else {
-                    resultsDiv.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5><i class="fas fa-exclamation-circle"></i> API Error</h5>
-                            <p><strong>Error:</strong> ${data.error}</p>
-                            <p><strong>Status:</strong> ${response.status}</p>
-                            ${response.status === 503 ? '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> Redis server is not connected</p>' : ''}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                const resultsDiv = document.getElementById('testResults');
-                resultsDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h5><i class="fas fa-exclamation-circle"></i> Network Error</h5>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        async function checkAllApiStatus() {
-            const apiKey = getApiKey();
-            if (!apiKey) {
-                showAlert('Please enter an API key', 'warning');
-                return;
-            }
-            
-            const statusDiv = document.getElementById('apiStatus');
-            statusDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Checking API status...</div>';
-            
-            const serverUrl = getServerUrl();
-             const apis = [
-                 { name: 'Generate Random Email', url: `${serverUrl}/generate?key=${apiKey}`, method: 'GET' },
-                 { name: 'Manual Email Generation', url: `${serverUrl}/generate/manual?username=test&domain=oplex.online&key=${apiKey}`, method: 'GET' },
-                 { name: 'Get Inbox', url: `${serverUrl}/inbox/test@oplex.online?key=${apiKey}`, method: 'GET' },
-                 { name: 'Admin Domains', url: `${serverUrl}/admin/domains`, method: 'GET' }
-             ];
-            
-            let statusHtml = '<div class="card"><div class="card-header"><strong>API Status Check Results</strong></div><div class="card-body">';
-            
-            for (const api of apis) {
-                try {
-                    const response = await fetch(api.url);
-                    const statusIcon = response.ok ? 
-                        '<i class="fas fa-check-circle text-success"></i>' : 
-                        '<i class="fas fa-times-circle text-danger"></i>';
-                    const statusText = response.ok ? 'Working' : `Error ${response.status}`;
-                    const statusClass = response.ok ? 'text-success' : 'text-danger';
-                    
-                    statusHtml += `
-                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                            <span>${api.name}</span>
-                            <span class="${statusClass}">${statusIcon} ${statusText}</span>
-                        </div>
-                    `;
-                } catch (error) {
-                    statusHtml += `
-                        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                            <span>${api.name}</span>
-                            <span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Network Error</span>
-                        </div>
-                    `;
-                }
-            }
-            
-            statusHtml += '</div></div>';
-            statusDiv.innerHTML = statusHtml;
-        }
-        
-        function clearResults() {
-            document.getElementById('testResults').innerHTML = '';
-            document.getElementById('apiStatus').innerHTML = '';
-        }
-        
-        function showAlert(message, type) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            document.querySelector('.admin-container .p-4').insertBefore(alertDiv, document.querySelector('.admin-container .p-4').firstChild);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
-        }
-        
-        // TTL Management Functions
-        async function updateTTLConfig() {
-            const autoTTL = parseInt(document.getElementById('autoTTL').value);
-            const manualTTL = parseInt(document.getElementById('manualTTL').value);
-            
-            if (!autoTTL || !manualTTL || autoTTL < 60 || manualTTL < 3600) {
-                showAlert('Invalid TTL values. Auto-generated must be ≥60s, Manual must be ≥3600s', 'danger');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/ttl/config', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        autoGenerated: autoTTL,
-                        manualCreated: manualTTL
-                    })
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
-                    showAlert('TTL configuration updated successfully!', 'success');
-                } else {
-                    showAlert('Error updating TTL config: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Error updating TTL config: ' + error.message, 'danger');
-            }
-        }
-        
-        async function updateEmailTTL() {
-            const email = document.getElementById('emailTTL').value.trim();
-            const ttlSeconds = parseInt(document.getElementById('newTTL').value);
-            
-            if (!email || isNaN(ttlSeconds) || ttlSeconds < 0) {
-                showAlert('Please enter a valid email and TTL value', 'danger');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/admin/ttl/email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        ttlSeconds: ttlSeconds
-                    })
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
-                    showAlert(`TTL updated for ${email}: ${ttlSeconds} seconds`, 'success');
-                    document.getElementById('emailTTL').value = '';
-                    document.getElementById('newTTL').value = '';
-                } else {
-                    showAlert('Error updating email TTL: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Error updating email TTL: ' + error.message, 'danger');
-            }
-        }
-        
-        async function deleteEmailInbox() {
-            const email = document.getElementById('emailTTL').value.trim();
-            
-            if (!email) {
-                showAlert('Please enter an email address', 'danger');
-                return;
-            }
-            
-            if (!confirm(`Are you sure you want to permanently delete the inbox for ${email}?`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/admin/ttl/email/${encodeURIComponent(email)}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
-                    showAlert(`Inbox permanently deleted for ${email}`, 'success');
-                    document.getElementById('emailTTL').value = '';
-                    document.getElementById('newTTL').value = '';
-                } else {
-                    showAlert('Error deleting inbox: ' + data.error, 'danger');
-                }
-            } catch (error) {
-                showAlert('Error deleting inbox: ' + error.message, 'danger');
-            }
-        }
-        
-        // Load TTL configuration on page load
-        async function loadTTLConfig() {
-            try {
-                const response = await fetch('/admin/ttl/config');
-                const data = await response.json();
-                
-                if (response.ok && data.ttl) {
-                    document.getElementById('autoTTL').value = data.ttl.autoGenerated;
-                    document.getElementById('manualTTL').value = data.ttl.manualCreated;
-                }
-            } catch (error) {
-                console.error('Error loading TTL config:', error);
-            }
-        }
-        
-        // Real-time email notifications with WebSocket
-        let socket = null;
-        let subscribedEmails = new Set();
-        
-        function initializeWebSocket() {
-            const serverUrl = getServerUrl();
-            socket = io(serverUrl);
-            
-            socket.on('connect', () => {
-                console.log('Connected to WebSocket server');
-                showAlert('🔌 Real-time notifications connected!', 'success');
-            });
-            
-            socket.on('disconnect', () => {
-                console.log('Disconnected from WebSocket server');
-                showAlert('⚠️ Real-time notifications disconnected', 'warning');
-            });
-            
-            socket.on('new-email', (data) => {
-                showNewEmailNotification(data);
-            });
-            
-            socket.on('subscribed', (data) => {
-                console.log('Subscribed to email:', data.email);
-            });
-            
-            socket.on('unsubscribed', (data) => {
-                console.log('Unsubscribed from email:', data.email);
-            });
-        }
-        
-        function subscribeToEmail(email) {
-            if (socket && email && !subscribedEmails.has(email)) {
-                socket.emit('subscribe-email', email);
-                subscribedEmails.add(email);
-                console.log('Subscribed to real-time notifications for:', email);
-            }
-        }
-        
-        function unsubscribeFromEmail(email) {
-            if (socket && email && subscribedEmails.has(email)) {
-                socket.emit('unsubscribe-email', email);
-                subscribedEmails.delete(email);
-                console.log('Unsubscribed from real-time notifications for:', email);
-            }
-        }
-        
-        function showNewEmailNotification(data) {
-            // Create notification toast
-            const toast = document.createElement('div');
-            toast.className = 'toast align-items-center text-white bg-primary border-0';
-            toast.setAttribute('role', 'alert');
-            toast.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <strong>📧 New Email Received!</strong><br>
-                        <small>To: ${data.email}</small><br>
-                        <small>From: ${data.message.from}</small><br>
-                        <small>Subject: ${data.message.subject}</small>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            
-            // Add to toast container
-            let toastContainer = document.getElementById('toast-container');
-            if (!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.id = 'toast-container';
-                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-                toastContainer.style.zIndex = '9999';
-                document.body.appendChild(toastContainer);
-            }
-            
-            toastContainer.appendChild(toast);
-            
-            // Show toast
-            const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
-            bsToast.show();
-            
-            // Auto-remove after hiding
-            toast.addEventListener('hidden.bs.toast', () => {
-                toast.remove();
-            });
-            
-            // Play notification sound (optional)
-            try {
-                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
-                audio.volume = 0.3;
-                audio.play().catch(() => {});
-            } catch (e) {}
-        }
-        
-        // Add email subscription UI
-        function addEmailSubscriptionUI() {
-            const subscriptionHTML = `
-                <div class="card mb-3">
+                <div class="card">
                     <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-bell"></i> Real-time Email Notifications</h6>
+                        <h5 class="mb-0"><i class="fas fa-bell"></i> Email Subscriptions</h5>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label"><strong>Subscribe to Email:</strong></label>
+                            <label class="form-label">Subscribe to Email:</label>
                             <div class="input-group">
                                 <input type="email" id="subscribeEmail" class="form-control" placeholder="user@domain.com">
                                 <button class="btn btn-success" onclick="subscribeToEmailFromInput()">
@@ -1123,55 +660,331 @@ curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"
                         </div>
                     </div>
                 </div>
-            `;
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings" class="content-section">
+                <h2 class="mb-4"><i class="fas fa-cog"></i> Settings</h2>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-server"></i> Server Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Server URL:</label>
+                                <input type="text" class="form-control" value="http://localhost:3001" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">API Key:</label>
+                                <input type="text" class="form-control" value="supersecretapikey123" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Redis Status:</label>
+                                <div class="form-control" id="redisConnectionStatus">Connected</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">WebSocket Status:</label>
+                                <div class="form-control" id="websocketStatus">Connected</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-envelope"></i> TurboMail Admin Dashboard
+                </div>
+                <div>
+                    <small>© 2024 TurboMail. All rights reserved.</small>
+                </div>
+                <div>
+                    <small>Version 2.0.0</small>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+    <script>
+        // Global variables
+        let socket = null;
+        let subscribedEmails = new Set();
+        let statsRefreshInterval = null;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            loadDomains();
+            loadTTLConfig();
+            updateEndpoints();
             
-            // Insert after TTL management section
-            const ttlSection = document.querySelector('.col-md-6 h3[class*="fa-clock"]').parentElement;
-            ttlSection.insertAdjacentHTML('beforeend', subscriptionHTML);
+            // Initialize real-time features
+            initializeWebSocket();
+            
+            // Initialize dashboard
+            loadStats();
+            setupAutoRefresh();
+            
+            // Update endpoints when config changes
+            document.getElementById('apiKey').addEventListener('input', updateEndpoints);
+            document.getElementById('serverUrl').addEventListener('input', updateEndpoints);
+        });
+        
+        // Navigation functions
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked nav link
+            event.target.classList.add('active');
+            
+            // Update header title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'api-endpoints': 'API Endpoints',
+                'domains': 'Domain Management',
+                'ttl-management': 'TTL Management',
+                'notifications': 'Notifications',
+                'settings': 'Settings'
+            };
+            
+            document.querySelector('.header-title').innerHTML = `<i class="fas fa-chart-bar"></i> ${titles[sectionId]}`;
         }
         
-        function subscribeToEmailFromInput() {
-            const email = document.getElementById('subscribeEmail').value.trim();
-            if (email && email.includes('@')) {
-                subscribeToEmail(email);
-                updateSubscribedEmailsList();
-                document.getElementById('subscribeEmail').value = '';
-                showAlert(`Subscribed to real-time notifications for ${email}`, 'success');
-            } else {
-                showAlert('Please enter a valid email address', 'danger');
+        // Configuration functions
+        function loadConfig() {
+            const savedServerUrl = localStorage.getItem('serverUrl') || 'http://localhost:3001';
+            const savedApiKey = localStorage.getItem('apiKey') || 'supersecretapikey123';
+            
+            document.getElementById('serverUrl').value = savedServerUrl;
+            document.getElementById('apiKey').value = savedApiKey;
+        }
+        
+        function getServerUrl() {
+            return document.getElementById('serverUrl').value || 'http://localhost:3001';
+        }
+        
+        function getApiKey() {
+            return document.getElementById('apiKey').value || 'supersecretapikey123';
+        }
+        
+        function updateEndpoints() {
+            const serverUrl = getServerUrl();
+            const apiKey = getApiKey();
+            
+            document.getElementById('endpoint1').textContent = `${serverUrl}/generate?key=${apiKey}`;
+            document.getElementById('endpoint2').textContent = `${serverUrl}/generate/manual`;
+            document.getElementById('endpoint3').textContent = `${serverUrl}/inbox/{email}?key=${apiKey}`;
+            
+            // Save to localStorage
+            localStorage.setItem('serverUrl', serverUrl);
+            localStorage.setItem('apiKey', apiKey);
+        }
+        
+        function copyEndpoint(elementId) {
+            const element = document.getElementById(elementId);
+            navigator.clipboard.writeText(element.textContent);
+            showAlert('Endpoint copied to clipboard!', 'success');
+        }
+        
+        // Domain management functions
+        async function loadDomains() {
+            try {
+                const response = await fetch('/admin/domains');
+                const data = await response.json();
+                
+                const domainsList = document.getElementById('domainsList');
+                if (data.success && data.domains.length > 0) {
+                    domainsList.innerHTML = data.domains.map(domain => `
+                        <div class="domain-item">
+                            <span><i class="fas fa-globe"></i> ${domain}</span>
+                            <button class="btn btn-sm btn-danger" onclick="deleteDomain('${domain}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    domainsList.innerHTML = '<p class="text-muted">No domains configured</p>';
+                }
+            } catch (error) {
+                console.error('Error loading domains:', error);
+                showAlert('Error loading domains', 'danger');
             }
         }
         
-        function updateSubscribedEmailsList() {
-            const listContainer = document.getElementById('subscribedEmailsList');
-            if (subscribedEmails.size === 0) {
-                listContainer.innerHTML = '<small class="text-muted">No email subscriptions active</small>';
+        async function addDomain() {
+            const domain = document.getElementById('newDomain').value.trim();
+            if (!domain) {
+                showAlert('Please enter a domain name', 'warning');
                 return;
             }
             
-            let html = '<div class="mb-2"><strong>Active Subscriptions:</strong></div>';
-            subscribedEmails.forEach(email => {
-                html += `
-                    <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded">
-                        <span><i class="fas fa-envelope text-success"></i> ${email}</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="unsubscribeFromEmailUI('${email}')">
-                            <i class="fas fa-bell-slash"></i>
-                        </button>
-                    </div>
-                `;
-            });
-            listContainer.innerHTML = html;
+            try {
+                const response = await fetch('/admin/domains', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('newDomain').value = '';
+                    loadDomains();
+                    showAlert('Domain added successfully!', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to add domain', 'danger');
+                }
+            } catch (error) {
+                console.error('Error adding domain:', error);
+                showAlert('Error adding domain', 'danger');
+            }
         }
         
-        function unsubscribeFromEmailUI(email) {
-            unsubscribeFromEmail(email);
-            updateSubscribedEmailsList();
-            showAlert(`Unsubscribed from ${email}`, 'info');
+        async function deleteDomain(domain) {
+            if (!confirm(`Are you sure you want to delete domain: ${domain}?`)) return;
+            
+            try {
+                const response = await fetch(`/admin/domains/${domain}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    loadDomains();
+                    showAlert('Domain deleted successfully!', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to delete domain', 'danger');
+                }
+            } catch (error) {
+                console.error('Error deleting domain:', error);
+                showAlert('Error deleting domain', 'danger');
+            }
+        }
+        
+        // TTL management functions
+        async function loadTTLConfig() {
+            try {
+                const response = await fetch('/admin/ttl/config');
+                const data = await response.json();
+                
+                if (response.ok && data.ttl) {
+                    document.getElementById('autoTTL').value = data.ttl.autoGenerated;
+                    document.getElementById('manualTTL').value = data.ttl.manualCreated;
+                }
+            } catch (error) {
+                console.error('Error loading TTL config:', error);
+            }
+        }
+        
+        async function updateTTLConfig() {
+            const autoGenerated = parseInt(document.getElementById('autoTTL').value);
+            const manualCreated = parseInt(document.getElementById('manualTTL').value);
+            
+            if (autoGenerated < 60 || manualCreated < 3600) {
+                showAlert('Invalid TTL values. Auto-generated must be ≥60s, Manual must be ≥3600s', 'danger');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/ttl/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ autoGenerated, manualCreated })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('TTL configuration updated successfully!', 'success');
+                } else {
+                    showAlert(data.error || 'Failed to update TTL configuration', 'danger');
+                }
+            } catch (error) {
+                console.error('Error updating TTL config:', error);
+                showAlert('Error updating TTL configuration', 'danger');
+            }
+        }
+        
+        async function updateEmailTTL() {
+            const email = document.getElementById('emailTTL').value.trim();
+            const ttl = parseInt(document.getElementById('emailTTLValue').value);
+            
+            if (!email || !ttl || ttl < 60) {
+                showAlert('Please enter a valid email and TTL (≥60 seconds)', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/ttl/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, ttl })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('emailTTL').value = '';
+                    document.getElementById('emailTTLValue').value = '';
+                    showAlert(`TTL updated for ${email}`, 'success');
+                } else {
+                    showAlert(data.error || 'Failed to update email TTL', 'danger');
+                }
+            } catch (error) {
+                console.error('Error updating email TTL:', error);
+                showAlert('Error updating email TTL', 'danger');
+            }
+        }
+        
+        async function deleteEmailInbox() {
+            const email = document.getElementById('deleteEmail').value.trim();
+            
+            if (!email) {
+                showAlert('Please enter an email address', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to permanently delete the inbox for: ${email}?`)) return;
+            
+            try {
+                const response = await fetch(`/admin/ttl/email/${email}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('deleteEmail').value = '';
+                    showAlert(`Inbox deleted for ${email}`, 'success');
+                    loadStats(); // Refresh stats
+                } else {
+                    showAlert(data.error || 'Failed to delete email inbox', 'danger');
+                }
+            } catch (error) {
+                console.error('Error deleting email inbox:', error);
+                showAlert('Error deleting email inbox', 'danger');
+            }
         }
         
         // Dashboard statistics functions
-        let statsRefreshInterval = null;
-        
         async function loadStats() {
             try {
                 const response = await fetch('/admin/stats');
@@ -1235,7 +1048,7 @@ curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"
             function toggleAutoRefresh() {
                 if (autoRefreshCheckbox.checked) {
                     if (!statsRefreshInterval) {
-                        statsRefreshInterval = setInterval(loadStats, 5000); // Refresh every 5 seconds
+                        statsRefreshInterval = setInterval(loadStats, 5000);
                         console.log('Auto-refresh enabled');
                     }
                 } else {
@@ -1249,10 +1062,155 @@ curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"
             
             autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
             
-            // Start auto-refresh if checkbox is checked
             if (autoRefreshCheckbox.checked) {
                 toggleAutoRefresh();
             }
+        }
+        
+        // Real-time email notifications with WebSocket
+        function initializeWebSocket() {
+            const serverUrl = getServerUrl();
+            socket = io(serverUrl);
+            
+            socket.on('connect', () => {
+                console.log('Connected to WebSocket server');
+                showAlert('🔌 Real-time notifications connected!', 'success');
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Disconnected from WebSocket server');
+                showAlert('⚠️ Real-time notifications disconnected', 'warning');
+            });
+            
+            socket.on('new-email', (data) => {
+                showNewEmailNotification(data);
+            });
+            
+            socket.on('subscribed', (data) => {
+                console.log('Subscribed to email:', data.email);
+            });
+            
+            socket.on('unsubscribed', (data) => {
+                console.log('Unsubscribed from email:', data.email);
+            });
+        }
+        
+        function subscribeToEmail(email) {
+            if (socket && email && !subscribedEmails.has(email)) {
+                socket.emit('subscribe-email', email);
+                subscribedEmails.add(email);
+                console.log('Subscribed to real-time notifications for:', email);
+            }
+        }
+        
+        function unsubscribeFromEmail(email) {
+            if (socket && email && subscribedEmails.has(email)) {
+                socket.emit('unsubscribe-email', email);
+                subscribedEmails.delete(email);
+                console.log('Unsubscribed from real-time notifications for:', email);
+            }
+        }
+        
+        function showNewEmailNotification(data) {
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-primary border-0';
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>📧 New Email Received!</strong><br>
+                        <small>To: ${data.email}</small><br>
+                        <small>From: ${data.message.from}</small><br>
+                        <small>Subject: ${data.message.subject}</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+            
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+                audio.volume = 0.3;
+                audio.play().catch(() => {});
+            } catch (e) {}
+        }
+        
+        function subscribeToEmailFromInput() {
+            const email = document.getElementById('subscribeEmail').value.trim();
+            if (email && email.includes('@')) {
+                subscribeToEmail(email);
+                updateSubscribedEmailsList();
+                document.getElementById('subscribeEmail').value = '';
+                showAlert(`Subscribed to real-time notifications for ${email}`, 'success');
+            } else {
+                showAlert('Please enter a valid email address', 'danger');
+            }
+        }
+        
+        function updateSubscribedEmailsList() {
+            const listContainer = document.getElementById('subscribedEmailsList');
+            if (subscribedEmails.size === 0) {
+                listContainer.innerHTML = '<small class="text-muted">No email subscriptions active</small>';
+                return;
+            }
+            
+            let html = '<div class="mb-2"><strong>Active Subscriptions:</strong></div>';
+            subscribedEmails.forEach(email => {
+                html += `
+                    <div class="d-flex justify-content-between align-items-center mb-1 p-2 bg-dark rounded">
+                        <span><i class="fas fa-envelope text-success"></i> ${email}</span>
+                        <button class="btn btn-sm btn-outline-danger" onclick="unsubscribeFromEmailUI('${email}')">
+                            <i class="fas fa-bell-slash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+        
+        function unsubscribeFromEmailUI(email) {
+            unsubscribeFromEmail(email);
+            updateSubscribedEmailsList();
+            showAlert(`Unsubscribed from ${email}`, 'info');
+        }
+        
+        // Alert system
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHTML = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.insertAdjacentHTML('beforeend', alertHTML);
+            
+            setTimeout(() => {
+                const alertElement = document.getElementById(alertId);
+                if (alertElement) {
+                    alertElement.remove();
+                }
+            }, 5000);
         }
     </script>
 </body>
