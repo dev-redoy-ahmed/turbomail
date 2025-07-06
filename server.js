@@ -5,8 +5,17 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://165.22.97.51:3001'],
+        methods: ['GET', 'POST']
+    }
+});
 
 // Configuration object
 const config = {
@@ -111,6 +120,44 @@ async function connectRedis() {
 connectRedis().catch(error => {
     logger.error(`Failed to initialize Redis: ${error.message}`);
 });
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+    logger.info(`Client connected: ${socket.id}`);
+    
+    // Join email-specific room for targeted notifications
+    socket.on('subscribe-email', (email) => {
+        if (email && typeof email === 'string') {
+            socket.join(`email:${email}`);
+            logger.info(`Client ${socket.id} subscribed to email: ${email}`);
+            socket.emit('subscribed', { email, message: 'Successfully subscribed to email notifications' });
+        }
+    });
+    
+    // Leave email-specific room
+    socket.on('unsubscribe-email', (email) => {
+        if (email && typeof email === 'string') {
+            socket.leave(`email:${email}`);
+            logger.info(`Client ${socket.id} unsubscribed from email: ${email}`);
+            socket.emit('unsubscribed', { email, message: 'Successfully unsubscribed from email notifications' });
+        }
+    });
+    
+    socket.on('disconnect', () => {
+        logger.info(`Client disconnected: ${socket.id}`);
+    });
+});
+
+// Function to broadcast new email notifications
+function broadcastNewEmail(email, emailData) {
+    io.to(`email:${email}`).emit('new-email', {
+        email,
+        message: emailData,
+        timestamp: new Date().toISOString(),
+        count: 1
+    });
+    logger.info(`Broadcasted new email notification for: ${email}`);
+}
 
 // Input validation middleware
 function validateEmail(req, res, next) {
@@ -631,13 +678,17 @@ app.post('/webhook/receive', validateApiKey, async (req, res) => {
         await setEmailTTL(to, false);
       }
       
+      // Broadcast real-time notification
+      broadcastNewEmail(to, emailMessage);
+      
       logger.info(`Email received and stored for ${to} from ${emailMessage.from}`);
       
       res.json({
         message: 'Email received and stored successfully',
         recipient: to,
         messageId: emailMessage.id,
-        timestamp: emailMessage.timestamp
+        timestamp: emailMessage.timestamp,
+        realTimeNotified: true
       });
     } else {
       logger.warn(`Email received for ${to} but Redis not connected - email lost`);
@@ -661,6 +712,78 @@ app.get('/admin/ttl/config', (req, res) => {
     ttl: config.ttl,
     timestamp: new Date().toISOString()
   });
+});
+
+// Admin dashboard statistics endpoint
+app.get('/admin/stats', async (req, res) => {
+  try {
+    if (!redisClient || !redisConnected) {
+      return res.json({
+        success: true,
+        stats: {
+          totalInboxes: 0,
+          activeInboxes: 0,
+          emailsStored: 0,
+          redisConnected: false,
+          redisMemory: 'N/A',
+          redisPerformance: 'N/A'
+        }
+      });
+    }
+
+    // Get all inbox keys
+    const inboxKeys = await redisClient.keys('inbox:*');
+    const totalInboxes = inboxKeys.length;
+    
+    // Count active inboxes (with TTL > 0)
+    let activeInboxes = 0;
+    let totalEmails = 0;
+    
+    for (const key of inboxKeys) {
+      const ttl = await redisClient.ttl(key);
+      if (ttl > 0 || ttl === -1) { // -1 means no expiration
+        activeInboxes++;
+      }
+      
+      // Count emails in this inbox
+      const emailCount = await redisClient.lLen(key);
+      totalEmails += emailCount;
+    }
+    
+    // Get Redis memory info
+    const redisInfo = await redisClient.info('memory');
+    const memoryLines = redisInfo.split('\r\n');
+    const usedMemory = memoryLines.find(line => line.startsWith('used_memory_human:'))?.split(':')[1] || 'N/A';
+    
+    // Performance test - measure Redis response time
+    const startTime = Date.now();
+    await redisClient.ping();
+    const responseTime = Date.now() - startTime;
+    
+    // Get Redis server info
+    const serverInfo = await redisClient.info('server');
+    const serverLines = serverInfo.split('\r\n');
+    const redisVersion = serverLines.find(line => line.startsWith('redis_version:'))?.split(':')[1] || 'Unknown';
+    
+    res.json({
+      success: true,
+      stats: {
+        totalInboxes,
+        activeInboxes,
+        emailsStored: totalEmails,
+        redisConnected: true,
+        redisMemory: usedMemory,
+        redisPerformance: {
+          responseTime: `${responseTime}ms`,
+          version: redisVersion,
+          status: responseTime < 10 ? 'Excellent' : responseTime < 50 ? 'Good' : 'Slow'
+        }
+      }
+    });
+  } catch (error) {
+    logger.error(`Error getting admin stats: ${error.message}`);
+    res.status(500).json({ success: false, error: 'Failed to get statistics' });
+  }
 });
 
 app.post('/admin/ttl/config', (req, res) => {
@@ -831,7 +954,7 @@ process.on('SIGINT', async () => {
 });
 
 // Start the server
-app.listen(config.port, () => {
+server.listen(config.port, () => {
   logger.info(`🚀 TurboMail API Server started successfully`);
   logger.info(`📡 Server running on port ${config.port}`);
   logger.info(`🌐 Admin Panel: http://localhost:${config.port}`);
@@ -839,6 +962,7 @@ app.listen(config.port, () => {
   logger.info(`❤️  Health Check: http://localhost:${config.port}/health`);
   logger.info(`🔑 API Key: ${config.apiKey}`);
   logger.info(`📊 Memory Usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB`);
+  logger.info(`🔌 WebSocket Server: Ready for real-time notifications`);
   
   if (!redisConnected) {
     logger.warn(`⚠️  Redis not connected - running in standalone mode`);
