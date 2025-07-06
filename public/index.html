@@ -290,6 +290,72 @@ curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"
                     </div>
                     
                     <div class="col-md-6">
+                        <h3><i class="fas fa-clock"></i> TTL Management</h3>
+                        
+                        <!-- TTL Configuration -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-cog"></i> TTL Configuration</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Auto-generated emails TTL:</strong></label>
+                                    <div class="input-group">
+                                        <input type="number" id="autoTTL" class="form-control" value="3600" min="60">
+                                        <span class="input-group-text">seconds</span>
+                                    </div>
+                                    <small class="text-muted">Default: 1 hour (3600 seconds)</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Manual emails TTL:</strong></label>
+                                    <div class="input-group">
+                                        <input type="number" id="manualTTL" class="form-control" value="2592000" min="3600">
+                                        <span class="input-group-text">seconds</span>
+                                    </div>
+                                    <small class="text-muted">Default: 30 days (2592000 seconds)</small>
+                                </div>
+                                
+                                <button class="btn btn-custom" onclick="updateTTLConfig()">
+                                    <i class="fas fa-save"></i> Update TTL Config
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Individual Email TTL Management -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-envelope"></i> Email TTL Control</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Email Address:</strong></label>
+                                    <input type="email" id="emailTTL" class="form-control" placeholder="user@domain.com">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>New TTL (seconds):</strong></label>
+                                    <input type="number" id="newTTL" class="form-control" placeholder="3600" min="0">
+                                    <small class="text-muted">Set to 0 to remove expiration</small>
+                                </div>
+                                
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-warning" onclick="updateEmailTTL()">
+                                        <i class="fas fa-clock"></i> Update TTL
+                                    </button>
+                                    <button class="btn btn-danger" onclick="deleteEmailInbox()">
+                                        <i class="fas fa-trash"></i> Delete Inbox
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="row">
+                    <div class="col-md-12">
                         <h3><i class="fas fa-tools"></i> API Testing</h3>
                         
                         <!-- Configuration Section -->
@@ -375,6 +441,7 @@ curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"
         document.addEventListener('DOMContentLoaded', function() {
             loadConfig();
             loadDomains();
+            loadTTLConfig();
             updateEndpoints();
             
             // Update endpoints when config changes
@@ -743,6 +810,118 @@ curl "http://165.22.97.51:3001/inbox/test@oplex.online?key=supersecretapikey123"
             setTimeout(() => {
                 alertDiv.remove();
             }, 5000);
+        }
+        
+        // TTL Management Functions
+        async function updateTTLConfig() {
+            const autoTTL = parseInt(document.getElementById('autoTTL').value);
+            const manualTTL = parseInt(document.getElementById('manualTTL').value);
+            
+            if (!autoTTL || !manualTTL || autoTTL < 60 || manualTTL < 3600) {
+                showAlert('Invalid TTL values. Auto-generated must be ≥60s, Manual must be ≥3600s', 'danger');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/ttl/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        autoGenerated: autoTTL,
+                        manualCreated: manualTTL
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showAlert('TTL configuration updated successfully!', 'success');
+                } else {
+                    showAlert('Error updating TTL config: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error updating TTL config: ' + error.message, 'danger');
+            }
+        }
+        
+        async function updateEmailTTL() {
+            const email = document.getElementById('emailTTL').value.trim();
+            const ttlSeconds = parseInt(document.getElementById('newTTL').value);
+            
+            if (!email || isNaN(ttlSeconds) || ttlSeconds < 0) {
+                showAlert('Please enter a valid email and TTL value', 'danger');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/ttl/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        ttlSeconds: ttlSeconds
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showAlert(`TTL updated for ${email}: ${ttlSeconds} seconds`, 'success');
+                    document.getElementById('emailTTL').value = '';
+                    document.getElementById('newTTL').value = '';
+                } else {
+                    showAlert('Error updating email TTL: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error updating email TTL: ' + error.message, 'danger');
+            }
+        }
+        
+        async function deleteEmailInbox() {
+            const email = document.getElementById('emailTTL').value.trim();
+            
+            if (!email) {
+                showAlert('Please enter an email address', 'danger');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to permanently delete the inbox for ${email}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/ttl/email/${encodeURIComponent(email)}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showAlert(`Inbox permanently deleted for ${email}`, 'success');
+                    document.getElementById('emailTTL').value = '';
+                    document.getElementById('newTTL').value = '';
+                } else {
+                    showAlert('Error deleting inbox: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error deleting inbox: ' + error.message, 'danger');
+            }
+        }
+        
+        // Load TTL configuration on page load
+        async function loadTTLConfig() {
+            try {
+                const response = await fetch('/admin/ttl/config');
+                const data = await response.json();
+                
+                if (response.ok && data.ttl) {
+                    document.getElementById('autoTTL').value = data.ttl.autoGenerated;
+                    document.getElementById('manualTTL').value = data.ttl.manualCreated;
+                }
+            } catch (error) {
+                console.error('Error loading TTL config:', error);
+            }
         }
     </script>
 </body>
