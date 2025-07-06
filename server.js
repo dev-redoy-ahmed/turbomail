@@ -13,9 +13,7 @@ const config = {
     port: process.env.PORT || 3001,
     apiKey: 'supersecretapikey123',
     redis: {
-        host: '127.0.0.1',
-        port: 6379,
-        password: 'we1we2we3',
+        url: 'redis://:we1we2we3@127.0.0.1:6379',
         retryAttempts: 5,
         retryDelay: 2000
     }
@@ -60,9 +58,7 @@ async function connectRedis() {
             logger.info(`Redis connection attempt ${attempt}/${config.redis.retryAttempts}`);
             
             redisClient = redis.createClient({
-                host: config.redis.host,
-                port: config.redis.port,
-                password: config.redis.password,
+                url: config.redis.url,
                 retry_strategy: (options) => {
                     if (options.error && options.error.code === 'ECONNREFUSED') {
                         logger.error('Redis server refused connection');
