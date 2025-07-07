@@ -4,7 +4,7 @@ import '../models/email_models.dart';
 import 'device_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3001';
+  static const String baseUrl = 'http://165.22.97.51:3001';
   static const String apiKey = 'supersecretapikey123';
   static const Duration timeoutDuration = Duration(seconds: 30);
   
