@@ -160,6 +160,12 @@ const connectionPool = new RedisConnectionPool();
 
 // WebSocket server for real-time notifications
 function initializeWebSocketServer(plugin) {
+    // Check if server is already running
+    if (httpServer && httpServer.listening) {
+        plugin.loginfo('WebSocket server already running, skipping initialization');
+        return;
+    }
+
     httpServer = http.createServer();
     io = new Server(httpServer, CONFIG.websocket);
 
@@ -185,6 +191,20 @@ function initializeWebSocketServer(plugin) {
         socket.on('disconnect', () => {
             plugin.loginfo(`WebSocket client disconnected: ${socket.id}`);
         });
+    });
+
+    // Handle port conflicts gracefully
+    httpServer.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            plugin.logwarn(`Port ${CONFIG.websocket.port} is in use, trying alternative port`);
+            // Try alternative ports
+            const altPort = CONFIG.websocket.port + Math.floor(Math.random() * 100) + 1;
+            httpServer.listen(altPort, () => {
+                plugin.loginfo(`WebSocket server listening on alternative port ${altPort}`);
+            });
+        } else {
+            plugin.logerror(`WebSocket server error: ${err.message}`);
+        }
     });
 
     httpServer.listen(CONFIG.websocket.port, () => {
@@ -265,16 +285,32 @@ exports.register = function () {
             this.logerror("❌ Redis pool initialization failed: " + err);
         });
 
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
+    // Graceful shutdown handlers
+    const gracefulShutdown = () => {
         this.loginfo("🔄 Graceful shutdown initiated");
-        if (httpServer) {
-            httpServer.close();
-        }
         if (io) {
-            io.close();
+            io.close(() => {
+                this.loginfo("✅ WebSocket server closed");
+            });
         }
-    });
+        if (httpServer && httpServer.listening) {
+            httpServer.close(() => {
+                this.loginfo("✅ HTTP server closed");
+            });
+        }
+        // Clean up connection pool
+        if (connectionPool && connectionPool.connections) {
+            connectionPool.connections.forEach(client => {
+                if (client.isOpen) {
+                    client.disconnect();
+                }
+            });
+        }
+    };
+
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+    process.on('exit', gracefulShutdown);
 };
 
 exports.hook_data_post = async function (next, connection) {
@@ -373,4 +409,35 @@ exports.hook_init_master = function () {
         // Log performance stats every 5 minutes
         this.loginfo(`📊 Memory: ${memMB}MB, Queue: ${batchProcessor.queue.length}, Connections: ${connectionPool.connections.length}`);
     }, 300000); // 5 minutes
+};
+
+// Plugin shutdown hook for proper cleanup
+exports.shutdown = function () {
+    this.loginfo("🔄 TurboMail plugin shutdown initiated");
+    
+    // Close WebSocket server
+    if (io) {
+        io.close();
+        io = null;
+    }
+    
+    // Close HTTP server
+    if (httpServer && httpServer.listening) {
+        httpServer.close();
+        httpServer = null;
+    }
+    
+    // Clean up Redis connections
+    if (connectionPool && connectionPool.connections) {
+        connectionPool.connections.forEach(client => {
+            if (client.isOpen) {
+                client.disconnect();
+            }
+        });
+        connectionPool.connections = [];
+        connectionPool.available = [];
+        connectionPool.inUse.clear();
+    }
+    
+    this.loginfo("✅ TurboMail plugin shutdown complete");
 };
