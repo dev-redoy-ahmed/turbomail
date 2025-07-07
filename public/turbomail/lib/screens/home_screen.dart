@@ -4,6 +4,7 @@ import '../providers/email_provider.dart';
 import 'generate_email_screen.dart';
 import 'inbox_screen.dart';
 import 'email_list_screen.dart';
+import 'email_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     const GenerateEmailScreen(),
+    const EmailHistoryScreen(),
     const EmailListScreen(),
     const InboxScreen(),
   ];
@@ -45,6 +47,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icon(Icons.add_circle_outline),
                 activeIcon: Icon(Icons.add_circle),
                 label: 'Generate',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.history_outlined),
+                activeIcon: Icon(Icons.history),
+                label: 'History',
               ),
               BottomNavigationBarItem(
                 icon: Stack(

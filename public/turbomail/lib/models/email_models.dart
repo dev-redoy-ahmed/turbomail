@@ -2,13 +2,21 @@ class GeneratedEmail {
   final String email;
   final String type;
   final int ttl;
-  final String expiresAt;
+  final DateTime? expiresAt;
+  final String? deviceId;
+  final String? id;
+  final DateTime? createdAt;
+  bool isActive;
 
   GeneratedEmail({
     required this.email,
     required this.type,
     required this.ttl,
-    required this.expiresAt,
+    this.expiresAt,
+    this.deviceId,
+    this.id,
+    this.createdAt,
+    this.isActive = true,
   });
 
   factory GeneratedEmail.fromJson(Map<String, dynamic> json) {
@@ -16,7 +24,11 @@ class GeneratedEmail {
       email: json['email'] ?? '',
       type: json['type'] ?? '',
       ttl: json['ttl'] ?? 0,
-      expiresAt: json['expiresAt'] ?? '',
+      expiresAt: json['expiresAt'] != null ? DateTime.parse(json['expiresAt']) : null,
+      deviceId: json['deviceId'],
+      id: json['id'] ?? json['_id'],
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      isActive: json['isActive'] ?? true,
     );
   }
 
@@ -25,16 +37,32 @@ class GeneratedEmail {
       'email': email,
       'type': type,
       'ttl': ttl,
-      'expiresAt': expiresAt,
+      'expiresAt': expiresAt?.toIso8601String(),
+      'deviceId': deviceId,
+      'id': id,
+      'createdAt': createdAt?.toIso8601String(),
+      'isActive': isActive,
+    };
+  }
+
+  Map<String, dynamic> toMongoJson() {
+    return {
+      'email': email,
+      'type': type,
+      'ttl': ttl,
+      'expiresAt': expiresAt?.toIso8601String(),
+      'deviceId': deviceId,
+      'createdAt': createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+      'isActive': isActive,
     };
   }
 
   String get formattedTimestamp {
+    if (expiresAt == null) return 'No expiration';
     try {
-      final date = DateTime.parse(expiresAt);
-      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      return '${expiresAt!.day}/${expiresAt!.month}/${expiresAt!.year} ${expiresAt!.hour}:${expiresAt!.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      return expiresAt;
+      return 'Invalid date';
     }
   }
 }

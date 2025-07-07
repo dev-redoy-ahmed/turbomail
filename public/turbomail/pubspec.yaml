@@ -49,6 +49,15 @@ dependencies:
   
   # WebSocket client
   socket_io_client: ^2.0.3+1
+  
+  # Device information
+  device_info_plus: ^9.1.1
+  
+  # Local storage
+  shared_preferences: ^2.2.2
+  
+  # Date formatting
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

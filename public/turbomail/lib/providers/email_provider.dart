@@ -56,6 +56,7 @@ class EmailProvider with ChangeNotifier {
   Inbox? get currentInbox => _currentInbox;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get error => _errorMessage;
   List<GeneratedEmail> get generatedEmails => _generatedEmails;
   bool get hasEmails => _generatedEmails.isNotEmpty;
   int get totalMessages => _currentInbox?.count ?? 0;
@@ -87,6 +88,9 @@ class EmailProvider with ChangeNotifier {
       final response = await ApiService.generateRandomEmail();
       final email = GeneratedEmail.fromJson(response);
       
+      // Store in MongoDB with device ID
+      await _storeEmailInMongoDB(email);
+      
       _currentEmail = email;
       _generatedEmails.add(email);
       
@@ -111,6 +115,9 @@ class EmailProvider with ChangeNotifier {
     try {
       final response = await ApiService.generateManualEmail(username, domain);
       final email = GeneratedEmail.fromJson(response);
+      
+      // Store in MongoDB with device ID
+      await _storeEmailInMongoDB(email);
       
       _currentEmail = email;
       _generatedEmails.add(email);
@@ -228,7 +235,8 @@ class EmailProvider with ChangeNotifier {
         _currentInbox = Inbox(
           email: email,
           messages: [],
-          messageCount: 0,
+          count: 0,
+          timestamp: DateTime.now().millisecondsSinceEpoch.toString(),
         );
         notifyListeners();
       }
@@ -258,7 +266,8 @@ class EmailProvider with ChangeNotifier {
           _currentInbox = Inbox(
             email: email,
             messages: updatedMessages,
-            messageCount: updatedMessages.length,
+            count: updatedMessages.length,
+            timestamp: DateTime.now().millisecondsSinceEpoch.toString(),
           );
           notifyListeners();
         }
@@ -270,6 +279,97 @@ class EmailProvider with ChangeNotifier {
       return false;
     } finally {
       _setLoading(false);
+    }
+  }
+  
+  // Store email in MongoDB
+  Future<void> _storeEmailInMongoDB(GeneratedEmail email) async {
+    try {
+      await ApiService.storeGeneratedEmail(email);
+    } catch (e) {
+      // Log error but don't fail the email generation
+      print('Failed to store email in MongoDB: $e');
+    }
+  }
+  
+  // Load user's generated emails from MongoDB
+  Future<void> loadUserGeneratedEmails({bool activeOnly = false}) async {
+    _setLoading(true);
+    _setError(null);
+    
+    try {
+      final emails = await ApiService.getUserGeneratedEmails();
+      
+      if (activeOnly) {
+        _generatedEmails = emails.where((email) => email.isActive).toList();
+      } else {
+        _generatedEmails = emails;
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to load user emails: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+  
+  // Switch to a different email (set as active)
+  Future<void> switchToEmail(GeneratedEmail email) async {
+    try {
+      // Deactivate current email if exists
+      if (_currentEmail != null && _currentEmail!.id != null) {
+        await ApiService.updateEmailStatus(_currentEmail!.id!, false);
+      }
+      
+      // Activate selected email
+      if (email.id != null) {
+        await ApiService.updateEmailStatus(email.id!, true);
+        email.isActive = true;
+      }
+      
+      _currentEmail = email;
+      
+      // Update the email in the list
+      final index = _generatedEmails.indexWhere((e) => e.id == email.id);
+      if (index != -1) {
+        _generatedEmails[index] = email;
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to switch email: $e');
+    }
+  }
+  
+  // Delete a generated email
+  Future<void> deleteGeneratedEmail(GeneratedEmail email) async {
+    try {
+      if (email.id != null) {
+        await ApiService.deleteGeneratedEmail(email.id!);
+        
+        // Remove from local list
+        _generatedEmails.removeWhere((e) => e.id == email.id);
+        
+        // If this was the current email, clear it
+        if (_currentEmail?.id == email.id) {
+          _currentEmail = null;
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      _setError('Failed to delete email: $e');
+    }
+  }
+  
+  // Get device info
+  Future<Map<String, dynamic>?> getDeviceInfo() async {
+    try {
+      return await ApiService.getDeviceInfo();
+    } catch (e) {
+      _setError('Failed to get device info: $e');
+      return null;
     }
   }
   

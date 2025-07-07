@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
 const { Server } = require('socket.io');
+const { mongoManager } = require('./mongodb');
 
 const app = express();
 const server = http.createServer(app);
@@ -186,6 +187,17 @@ connectRedis().then(() => {
     }
 }).catch(error => {
     logger.error(`Failed to initialize Redis: ${error.message}`);
+});
+
+// Initialize MongoDB connection
+mongoManager.connect().then((connected) => {
+    if (connected) {
+        logger.info('✅ MongoDB initialized successfully');
+    } else {
+        logger.error('❌ Failed to initialize MongoDB');
+    }
+}).catch(error => {
+    logger.error(`Failed to initialize MongoDB: ${error.message}`);
 });
 
 // WebSocket connection handling
@@ -962,6 +974,276 @@ app.delete('/admin/ttl/email/:email', async (req, res) => {
       message: error.message
     });
   }
+});
+
+// MongoDB API Routes
+// MongoDB Health Check
+app.get('/api/mongodb/health', validateApiKey, async (req, res) => {
+  try {
+    const health = await mongoManager.healthCheck();
+    res.json(health);
+  } catch (error) {
+    logger.error(`MongoDB health check failed: ${error.message}`);
+    res.status(500).json({
+      error: 'Health check failed',
+      message: error.message
+    });
+  }
+});
+
+// MongoDB Connection Test
+app.post('/api/mongodb/test', validateApiKey, async (req, res) => {
+  try {
+    const health = await mongoManager.healthCheck();
+    if (health.status === 'healthy') {
+      res.json({ message: 'MongoDB connection test successful', status: health.status });
+    } else {
+      res.status(500).json({ error: 'MongoDB connection test failed', status: health.status });
+    }
+  } catch (error) {
+    logger.error(`MongoDB connection test failed: ${error.message}`);
+    res.status(500).json({
+      error: 'Connection test failed',
+      message: error.message
+    });
+  }
+});
+
+// Get Emails from MongoDB
+app.get('/api/mongodb/emails', validateApiKey, async (req, res) => {
+  try {
+    const { limit = 50, skip = 0 } = req.query;
+    const emails = await mongoManager.getEmails({}, parseInt(limit), parseInt(skip));
+    res.json({ emails, count: emails.length });
+  } catch (error) {
+    logger.error(`Failed to fetch emails from MongoDB: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to fetch emails',
+      message: error.message
+    });
+  }
+});
+
+// Search Emails in MongoDB
+app.get('/api/mongodb/emails/search', validateApiKey, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+    
+    const filter = {
+      $or: [
+        { to: { $regex: q, $options: 'i' } },
+        { from: { $regex: q, $options: 'i' } },
+        { subject: { $regex: q, $options: 'i' } },
+        { content: { $regex: q, $options: 'i' } }
+      ]
+    };
+    
+    const emails = await mongoManager.getEmails(filter, 50, 0);
+    res.json({ emails, count: emails.length, query: q });
+  } catch (error) {
+    logger.error(`Failed to search emails in MongoDB: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to search emails',
+      message: error.message
+    });
+  }
+});
+
+// Delete Email from MongoDB
+app.delete('/api/mongodb/emails/:id', validateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ObjectId } = require('mongodb');
+    
+    const result = await mongoManager.deleteEmail(new ObjectId(id));
+    if (result.deletedCount > 0) {
+      res.json({ message: 'Email deleted successfully', deletedCount: result.deletedCount });
+    } else {
+      res.status(404).json({ error: 'Email not found' });
+    }
+  } catch (error) {
+    logger.error(`Failed to delete email from MongoDB: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to delete email',
+      message: error.message
+    });
+  }
+});
+
+// Get Analytics from MongoDB
+app.get('/api/mongodb/analytics', validateApiKey, async (req, res) => {
+  try {
+    const { type = 'all', limit = 100 } = req.query;
+    const filter = type !== 'all' ? { type } : {};
+    
+    const analytics = await mongoManager.getAnalytics(filter, parseInt(limit));
+    res.json({ analytics, count: analytics.length, type });
+  } catch (error) {
+    logger.error(`Failed to fetch analytics from MongoDB: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to fetch analytics',
+      message: error.message
+    });
+  }
+});
+
+// Add Domain to MongoDB
+app.post('/api/mongodb/domains', validateApiKey, async (req, res) => {
+  try {
+    const { domain } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: 'Domain is required' });
+    }
+    
+    const result = await mongoManager.saveDomain({ domain, status: 'active' });
+    res.json({ message: 'Domain added successfully', domain, id: result.insertedId });
+  } catch (error) {
+    logger.error(`Failed to add domain to MongoDB: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to add domain',
+      message: error.message
+    });
+  }
+});
+
+// Get Domains from MongoDB
+app.get('/api/mongodb/domains', validateApiKey, async (req, res) => {
+  try {
+    const domains = await mongoManager.getDomains();
+    res.json({ domains, count: domains.length });
+  } catch (error) {
+    logger.error(`Failed to fetch domains from MongoDB: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to fetch domains',
+      message: error.message
+    });
+  }
+});
+
+// Store Generated Email for User
+app.post('/api/mongodb/emails/store', validateApiKey, async (req, res) => {
+  try {
+    const { email, type, ttl, expiresAt, deviceId, isActive = true } = req.body;
+    
+    if (!email || !deviceId) {
+      return res.status(400).json({ error: 'Email and deviceId are required' });
+    }
+    
+    const emailData = {
+      email,
+      type: type || 'random',
+      ttl: ttl || 3600,
+      expiresAt: expiresAt || new Date(Date.now() + (ttl || 3600) * 1000),
+      deviceId,
+      isActive,
+      createdAt: new Date(),
+      id: require('crypto').randomUUID()
+    };
+    
+    const result = await mongoManager.saveGeneratedEmail(emailData);
+    res.status(201).json({ 
+      message: 'Email stored successfully', 
+      email: emailData, 
+      id: result.insertedId 
+    });
+  } catch (error) {
+    logger.error(`Failed to store generated email: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to store email',
+      message: error.message
+    });
+  }
+});
+
+// Get User's Generated Emails
+app.get('/api/mongodb/emails/user/:deviceId', validateApiKey, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const { limit = 50, skip = 0, activeOnly = 'false' } = req.query;
+    
+    if (!deviceId) {
+      return res.status(400).json({ error: 'Device ID is required' });
+    }
+    
+    const filter = { deviceId };
+    if (activeOnly === 'true') {
+      filter.isActive = true;
+    }
+    
+    const emails = await mongoManager.getUserGeneratedEmails(filter, parseInt(limit), parseInt(skip));
+    res.json({ 
+      emails, 
+      count: emails.length, 
+      deviceId,
+      activeOnly: activeOnly === 'true'
+    });
+  } catch (error) {
+    logger.error(`Failed to fetch user emails: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to fetch user emails',
+      message: error.message
+    });
+  }
+});
+
+// Update Email Status
+app.put('/api/mongodb/emails/:id/status', validateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ error: 'isActive must be a boolean' });
+    }
+    
+    const { ObjectId } = require('mongodb');
+    const result = await mongoManager.updateGeneratedEmailStatus(new ObjectId(id), isActive);
+    
+    if (result.modifiedCount > 0) {
+      res.json({ 
+        message: 'Email status updated successfully', 
+        modifiedCount: result.modifiedCount,
+        isActive 
+      });
+    } else {
+      res.status(404).json({ error: 'Email not found or no changes made' });
+    }
+  } catch (error) {
+    logger.error(`Failed to update email status: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to update email status',
+      message: error.message
+    });
+  }
+});
+
+// Delete Generated Email
+app.delete('/api/mongodb/emails/:id', validateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ObjectId } = require('mongodb');
+    
+    const result = await mongoManager.deleteGeneratedEmail(new ObjectId(id));
+    if (result.deletedCount > 0) {
+      res.json({ message: 'Generated email deleted successfully', deletedCount: result.deletedCount });
+    } else {
+      res.status(404).json({ error: 'Generated email not found' });
+    }
+  } catch (error) {
+    logger.error(`Failed to delete generated email: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to delete generated email',
+      message: error.message
+    });
+  }
+});
+
+// Serve MongoDB management page
+app.get('/mongodb', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mongodb.html'));
 });
 
 // Serve admin panel

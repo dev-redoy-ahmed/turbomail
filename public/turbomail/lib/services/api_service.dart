@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/email_models.dart';
+import 'device_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://165.22.97.51:3001';
@@ -138,4 +140,108 @@ class ApiService {
     }
   }
 
+  // MongoDB API Methods
+  
+  // Store generated email in MongoDB
+  static Future<Map<String, dynamic>> storeGeneratedEmail(GeneratedEmail email) async {
+    try {
+      final deviceId = await DeviceService.getDeviceId();
+      final emailData = email.toMongoJson();
+      emailData['deviceId'] = deviceId;
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/mongodb/emails/store'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: json.encode(emailData),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to store email: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+  
+  // Get user's generated emails from MongoDB
+  static Future<List<GeneratedEmail>> getUserGeneratedEmails() async {
+    try {
+      final deviceId = await DeviceService.getDeviceId();
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/mongodb/emails/user/$deviceId?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> emailsJson = data['emails'] ?? [];
+        return emailsJson.map((json) => GeneratedEmail.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to get user emails: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+  
+  // Update email status (active/inactive)
+  static Future<Map<String, dynamic>> updateEmailStatus(String emailId, bool isActive) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/api/mongodb/emails/$emailId/status'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: json.encode({'isActive': isActive}),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to update email status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+  
+  // Delete generated email from MongoDB
+  static Future<Map<String, dynamic>> deleteGeneratedEmail(String emailId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/mongodb/emails/$emailId?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to delete email: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+  
+  // Get device info
+  static Future<Map<String, dynamic>> getDeviceInfo() async {
+    try {
+      final deviceId = await DeviceService.getDeviceId();
+      final deviceInfo = await DeviceService.getDeviceInfo();
+      
+      return {
+        'deviceId': deviceId,
+        'deviceInfo': deviceInfo,
+      };
+    } catch (e) {
+      throw Exception('Failed to get device info: $e');
+    }
+  }
 }
