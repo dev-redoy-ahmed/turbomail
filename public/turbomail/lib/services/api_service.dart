@@ -102,5 +102,40 @@ class ApiService {
     }
   }
 
+  // Delete all messages from inbox
+  static Future<Map<String, dynamic>> deleteAllMessages(String email) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/delete/$email?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to delete messages: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Delete specific message by index
+  static Future<Map<String, dynamic>> deleteMessage(String email, int index) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/delete/$email/$index?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to delete message: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
 
 }

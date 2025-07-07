@@ -190,6 +190,14 @@ class EmailDetailScreen extends StatelessWidget {
                   'message content',
                 ),
               ),
+              PopupMenuItem(
+                child: const ListTile(
+                  leading: Icon(Icons.delete, color: Colors.red),
+                  title: Text('Delete Message', style: TextStyle(color: Colors.red)),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onTap: () => _showDeleteConfirmation(context),
+              ),
 
             ],
           ),
@@ -334,5 +342,106 @@ class EmailDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Show delete confirmation dialog
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Message'),
+          content: const Text(
+            'Are you sure you want to permanently delete this message from Redis? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _deleteMessage(context);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Delete the message
+  Future<void> _deleteMessage(BuildContext context) async {
+    final emailProvider = Provider.of<EmailProvider>(context, listen: false);
+    
+    // Find the index of this message in the current inbox
+    final currentInbox = emailProvider.currentInbox;
+    if (currentInbox == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: No inbox loaded'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    final messageIndex = currentInbox.messages.indexWhere(
+      (msg) => msg.id == message.id && 
+               msg.timestamp == message.timestamp &&
+               msg.subject == message.subject,
+    );
+    
+    if (messageIndex == -1) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Message not found in inbox'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Show loading indicator
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Deleting message...'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+    
+    // Delete the message
+    final success = await emailProvider.deleteMessage(currentInbox.email, messageIndex);
+    
+    if (context.mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Message deleted permanently from Redis'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Go back to inbox
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete message: ${emailProvider.errorMessage}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

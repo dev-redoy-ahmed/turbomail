@@ -214,6 +214,64 @@ class EmailProvider with ChangeNotifier {
       print('Subscribed to WebSocket notifications for: $email');
     }
   }
+
+  // Delete all messages from inbox
+  Future<bool> deleteAllMessages(String email) async {
+    _setLoading(true);
+    _setError(null);
+    
+    try {
+      final response = await ApiService.deleteAllMessages(email);
+      
+      // Clear current inbox if it matches the deleted email
+      if (_currentInbox?.email == email) {
+        _currentInbox = Inbox(
+          email: email,
+          messages: [],
+          messageCount: 0,
+        );
+        notifyListeners();
+      }
+      
+      return true;
+    } catch (e) {
+      _setError('Failed to delete messages: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Delete specific message by index
+  Future<bool> deleteMessage(String email, int index) async {
+    _setLoading(true);
+    _setError(null);
+    
+    try {
+      final response = await ApiService.deleteMessage(email, index);
+      
+      // Update current inbox if it matches the email
+      if (_currentInbox?.email == email && _currentInbox != null) {
+        final updatedMessages = List<EmailMessage>.from(_currentInbox!.messages);
+        if (index >= 0 && index < updatedMessages.length) {
+          updatedMessages.removeAt(index);
+          _currentInbox = Inbox(
+            email: email,
+            messages: updatedMessages,
+            messageCount: updatedMessages.length,
+          );
+          notifyListeners();
+        }
+      }
+      
+      return true;
+    } catch (e) {
+      _setError('Failed to delete message: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
   
   // Dispose method to clean up resources
   @override
