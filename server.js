@@ -33,64 +33,12 @@ const config = {
     }
 };
 
-// Enhanced logger utility with performance tracking
+// Simple logger utility
 const logger = {
     info: (message) => console.log(`[INFO] ${new Date().toISOString()} - ${message}`),
     error: (message) => console.error(`[ERROR] ${new Date().toISOString()} - ${message}`),
-    warn: (message) => console.warn(`[WARN] ${new Date().toISOString()} - ${message}`),
-    perf: (message, startTime) => {
-        const duration = Date.now() - startTime;
-        console.log(`[PERF] ${new Date().toISOString()} - ${message} (${duration}ms)`);
-    }
+    warn: (message) => console.warn(`[WARN] ${new Date().toISOString()} - ${message}`)
 };
-
-// Rate limiting store
-const rateLimitStore = new Map();
-
-// High-performance rate limiter
-function rateLimiter(maxRequests = 100, windowMs = 60000) {
-    return (req, res, next) => {
-        const key = req.ip || req.connection.remoteAddress;
-        const now = Date.now();
-        
-        if (!rateLimitStore.has(key)) {
-            rateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
-            return next();
-        }
-        
-        const record = rateLimitStore.get(key);
-        
-        if (now > record.resetTime) {
-            record.count = 1;
-            record.resetTime = now + windowMs;
-            return next();
-        }
-        
-        if (record.count >= maxRequests) {
-            return res.status(429).json({
-                error: 'Too many requests',
-                retryAfter: Math.ceil((record.resetTime - now) / 1000)
-            });
-        }
-        
-        record.count++;
-        next();
-    };
-}
-
-// Performance monitoring middleware
-function performanceMonitor(req, res, next) {
-    req.startTime = Date.now();
-    
-    res.on('finish', () => {
-        const duration = Date.now() - req.startTime;
-        if (duration > 1000) { // Log slow requests
-            logger.warn(`Slow request: ${req.method} ${req.path} - ${duration}ms`);
-        }
-    });
-    
-    next();
-}
 
 // Middleware to validate API key
 function validateApiKey(req, res, next) {
@@ -168,62 +116,10 @@ async function connectRedis() {
 }
 
 
-// Redis subscriber for cross-server communication
-let redisSubscriber;
-
-// Initialize Redis subscriber
-async function initializeRedisSubscriber() {
-    try {
-        redisSubscriber = redis.createClient({
-            url: config.redis.url
-        });
-        
-        await redisSubscriber.connect();
-        
-        // Subscribe to email notifications channel
-        await redisSubscriber.subscribe('email-notifications', (message) => {
-            try {
-                const notification = JSON.parse(message);
-                const { email, data } = notification;
-                
-                // Broadcast to local WebSocket clients
-                const room = `email:${email}`;
-                const clientsInRoom = io.sockets.adapter.rooms.get(room);
-                
-                if (clientsInRoom && clientsInRoom.size > 0) {
-                    io.to(room).emit('new-email', {
-                        email,
-                        message: data,
-                        timestamp: new Date().toISOString(),
-                        count: clientsInRoom.size,
-                        fullEmailData: data,
-                        source: 'redis-pubsub'
-                    });
-                    
-                    logger.info(`📡 Redis pub/sub: Broadcasted to ${clientsInRoom.size} local clients for: ${email}`);
-                }
-            } catch (err) {
-                logger.error(`Redis subscriber error: ${err.message}`);
-            }
-        });
-        
-        logger.info('✅ Redis subscriber initialized for cross-server notifications');
-        
-    } catch (err) {
-        logger.error(`Failed to initialize Redis subscriber: ${err.message}`);
-    }
-}
-
-// Initialize Redis connection and subscriber
-connectRedis()
-    .then(() => {
-        if (redisConnected) {
-            return initializeRedisSubscriber();
-        }
-    })
-    .catch(error => {
-        logger.error(`Failed to initialize Redis: ${error.message}`);
-    });
+// Initialize Redis connection
+connectRedis().catch(error => {
+    logger.error(`Failed to initialize Redis: ${error.message}`);
+});
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
@@ -252,51 +148,27 @@ io.on('connection', (socket) => {
     });
 });
 
-// High-performance broadcast function with Redis pub/sub
+// Function to broadcast new email notifications
 function broadcastNewEmail(email, emailData) {
-    // Use setImmediate for non-blocking operation
-    setImmediate(async () => {
-        try {
-            // Prepare optimized email data
-            const completeEmailData = {
-                id: emailData.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                from: emailData.from,
-                subject: emailData.subject || 'No Subject',
-                body: emailData.body || emailData.content || '',
-                timestamp: emailData.timestamp || new Date().toISOString(),
-                attachments: emailData.attachments || [],
-                size: emailData.size || 0
-            };
-            
-            const room = `email:${email}`;
-            const clientsInRoom = io.sockets.adapter.rooms.get(room);
-            
-            if (clientsInRoom && clientsInRoom.size > 0) {
-                // Broadcast to connected clients
-                io.to(room).emit('new-email', {
-                    email,
-                    message: completeEmailData,
-                    timestamp: new Date().toISOString(),
-                    count: clientsInRoom.size,
-                    fullEmailData: completeEmailData
-                });
-                
-                logger.info(`📡 Broadcasted to ${clientsInRoom.size} clients for: ${email}`);
-            }
-            
-            // Publish to Redis for cross-server communication
-            if (redisClient && redisClient.isReady) {
-                await redisClient.publish('email-notifications', JSON.stringify({
-                    email,
-                    data: completeEmailData,
-                    timestamp: Date.now()
-                }));
-            }
-            
-        } catch (err) {
-            logger.error(`Broadcast error for ${email}: ${err.message}`);
-        }
+    // Prepare complete email data for immediate display
+    const completeEmailData = {
+        id: emailData.id || Date.now().toString(),
+        from: emailData.from,
+        subject: emailData.subject,
+        body: emailData.body,
+        timestamp: emailData.timestamp || new Date().toISOString(),
+        attachments: emailData.attachments || []
+    };
+    
+    io.to(`email:${email}`).emit('new-email', {
+        email,
+        message: completeEmailData,
+        timestamp: new Date().toISOString(),
+        count: 1,
+        // ✨ NEW: Full email data for immediate inbox display
+        fullEmailData: completeEmailData
     });
+    logger.info(`Broadcasted new email notification with full data for: ${email}`);
 }
 
 // Input validation middleware
@@ -342,35 +214,13 @@ function requestLogger(req, res, next) {
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:3002', 'http://127.0.0.1:3002'],
+    origin: ['http://localhost:3001', 'http://127.0.0.1:3001'],
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(performanceMonitor);
-app.use(rateLimiter(1000, 60000)); // 1000 requests per minute
 app.use(requestLogger);
 app.use(express.static('public'));
-
-// Health monitoring
-setInterval(() => {
-    const memUsage = process.memoryUsage();
-    const memMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-    
-    if (memMB > 500) {
-        logger.warn(`⚠️ High memory usage: ${memMB}MB`);
-    }
-    
-    // Clean up rate limit store
-    const now = Date.now();
-    for (const [key, record] of rateLimitStore.entries()) {
-        if (now > record.resetTime) {
-            rateLimitStore.delete(key);
-        }
-    }
-    
-    logger.info(`📊 Memory: ${memMB}MB, Rate limit entries: ${rateLimitStore.size}, WebSocket clients: ${io.engine.clientsCount}`);
-}, 300000); // Every 5 minutes
 
 
 
