@@ -58,49 +58,14 @@ class EmailListScreen extends StatelessWidget {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Remove from List', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                Navigator.pop(context);
-                _showDeleteConfirmation(context, email);
-              },
-            ),
+
           ],
         ),
       ),
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, GeneratedEmail email) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Email'),
-        content: Text('Remove ${email.email} from your list?\n\nNote: This only removes it from the app, the email address may still be active.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              final emailProvider = Provider.of<EmailProvider>(context, listen: false);
-              emailProvider.removeGeneratedEmail(email);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Removed ${email.email}'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            },
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {

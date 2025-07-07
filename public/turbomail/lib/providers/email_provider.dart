@@ -167,61 +167,7 @@ class EmailProvider with ChangeNotifier {
     }
   }
 
-  // Delete all messages
-  Future<bool> deleteAllMessages(String email) async {
-    _setLoading(true);
-    _setError(null);
 
-    try {
-      final response = await ApiService.deleteAllMessages(email);
-      
-      // Verify deletion was successful
-      if (response.containsKey('message') && response.containsKey('deletedCount')) {
-        // Wait a moment for Redis to process the deletion
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Refresh inbox after deletion
-        await getInbox(email, forceRefresh: true);
-        return true;
-      } else {
-        _setError('Delete operation failed: Invalid response from server');
-        return false;
-      }
-    } catch (e) {
-      _setError('Failed to delete messages: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Delete specific message
-  Future<bool> deleteSpecificMessage(String email, int index) async {
-    _setLoading(true);
-    _setError(null);
-
-    try {
-      final response = await ApiService.deleteSpecificMessage(email, index);
-      
-      // Verify deletion was successful
-      if (response.containsKey('message') && response.containsKey('deletedMessage')) {
-        // Wait a moment for Redis to process the deletion
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Refresh inbox after deletion
-        await getInbox(email, forceRefresh: true);
-        return true;
-      } else {
-        _setError('Delete operation failed: Invalid response from server');
-        return false;
-      }
-    } catch (e) {
-      _setError('Failed to delete message: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
 
   // Refresh current inbox
   Future<void> refreshInbox() async {

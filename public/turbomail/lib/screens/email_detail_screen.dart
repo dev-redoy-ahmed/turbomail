@@ -27,43 +27,7 @@ class EmailDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Message'),
-        content: const Text('Delete this message?\n\nThis action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context); // Close dialog
-              
-              final emailProvider = Provider.of<EmailProvider>(context, listen: false);
-              final success = await emailProvider.deleteSpecificMessage(emailAddress, messageIndex);
-              
-              if (success && context.mounted) {
-                Navigator.pop(context); // Go back to inbox
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Message deleted'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildInfoRow(String label, String value, {VoidCallback? onCopy}) {
     return Padding(
@@ -353,41 +317,25 @@ class EmailDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              final emailProvider = Provider.of<EmailProvider>(context, listen: false);
-                              await emailProvider.refreshInbox();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Inbox refreshed'),
-                                    backgroundColor: Colors.blue,
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Refresh Inbox'),
-                            style: ElevatedButton.styleFrom(
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final emailProvider = Provider.of<EmailProvider>(context, listen: false);
+                        await emailProvider.refreshInbox();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Inbox refreshed'),
                               backgroundColor: Colors.blue,
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _showDeleteConfirmation(context),
-                            icon: const Icon(Icons.delete),
-                            label: const Text('Delete'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                            ),
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Refresh Inbox'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
                     ),
                   ],
                 ),

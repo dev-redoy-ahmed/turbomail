@@ -52,79 +52,6 @@ class _InboxScreenState extends State<InboxScreen> {
     });
   }
 
-  void _showDeleteConfirmation(BuildContext context, String email, {int? index}) {
-    final isDeleteAll = index == null;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isDeleteAll ? 'Delete All Messages' : 'Delete Message'),
-        content: Text(
-          isDeleteAll
-              ? 'Delete all messages from $email?\n\nThis action cannot be undone.'
-              : 'Delete this message?\n\nThis action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final emailProvider = Provider.of<EmailProvider>(context, listen: false);
-              
-              bool success;
-              if (isDeleteAll) {
-                success = await emailProvider.deleteAllMessages(email);
-              } else {
-                success = await emailProvider.deleteSpecificMessage(email, index!);
-              }
-              
-              if (mounted) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isDeleteAll ? 'All messages deleted successfully' : 'Message deleted successfully',
-                      ),
-                      backgroundColor: Colors.green,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        emailProvider.errorMessage ?? 'Failed to delete. Please try again.',
-                      ),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 4),
-                      action: SnackBarAction(
-                        label: 'Retry',
-                        textColor: Colors.white,
-                        onPressed: () {
-                          // Retry the delete operation
-                          if (isDeleteAll) {
-                            emailProvider.deleteAllMessages(email);
-                          } else {
-                            emailProvider.deleteSpecificMessage(email, index!);
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-            child: Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEmailInput() {
     return Card(
@@ -343,12 +270,6 @@ class _InboxScreenState extends State<InboxScreen> {
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Manual Refresh',
                 ),
-                if (inbox.count > 0)
-                  IconButton(
-                    onPressed: () => _showDeleteConfirmation(context, inbox.email),
-                    icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                    tooltip: 'Delete All',
-                  ),
               ],
             ),
           ),
@@ -413,42 +334,21 @@ class _InboxScreenState extends State<InboxScreen> {
                       ),
                     ],
                   ),
-                  trailing: PopupMenuButton(
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        child: const ListTile(
-                          leading: Icon(Icons.visibility),
-                          title: Text('View'),
-                          contentPadding: EdgeInsets.zero,
+                  trailing: IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EmailDetailScreen(
+                            message: message,
+                            emailAddress: inbox.email,
+                            messageIndex: index,
+                          ),
                         ),
-                        onTap: () {
-                          Future.delayed(Duration.zero, () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EmailDetailScreen(
-                                  message: message,
-                                  emailAddress: inbox.email,
-                                  messageIndex: index,
-                                ),
-                              ),
-                            );
-                          });
-                        },
-                      ),
-                      PopupMenuItem(
-                        child: const ListTile(
-                          leading: Icon(Icons.delete, color: Colors.red),
-                          title: Text('Delete', style: TextStyle(color: Colors.red)),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        onTap: () {
-                          Future.delayed(Duration.zero, () {
-                            _showDeleteConfirmation(context, inbox.email, index: index);
-                          });
-                        },
-                      ),
-                    ],
+                      );
+                    },
+                    icon: const Icon(Icons.visibility),
+                    tooltip: 'View Email',
                   ),
                   onTap: () {
                     Navigator.push(

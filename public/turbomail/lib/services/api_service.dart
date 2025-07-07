@@ -102,52 +102,5 @@ class ApiService {
     }
   }
 
-  // Delete all messages from inbox
-  static Future<Map<String, dynamic>> deleteAllMessages(String email) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/delete/$email?key=$apiKey&t=${DateTime.now().millisecondsSinceEpoch}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        },
-      ).timeout(timeoutDuration);
 
-      if (response.statusCode == 200) {
-        // Clear cache for this email after successful deletion
-        _lastRequestTime.remove('inbox_$email');
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to delete messages: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
-
-  // Delete specific message by index
-  static Future<Map<String, dynamic>> deleteSpecificMessage(
-      String email, int index) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/delete/$email/$index?key=$apiKey&t=${DateTime.now().millisecondsSinceEpoch}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        },
-      ).timeout(timeoutDuration);
-
-      if (response.statusCode == 200) {
-        // Clear cache for this email after successful deletion
-        _lastRequestTime.remove('inbox_$email');
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to delete message: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
 }
