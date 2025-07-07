@@ -116,8 +116,75 @@ async function connectRedis() {
 }
 
 
+// Redis subscriber for real-time email notifications
+let redisSubscriber;
+
+// Setup Redis subscriber for external email notifications
+async function setupRedisSubscriber() {
+    if (!redisConnected) {
+        logger.warn('Redis not connected, skipping subscriber setup');
+        return;
+    }
+
+    try {
+        // Create separate Redis client for subscription
+        redisSubscriber = redis.createClient({
+            url: config.redis.url
+        });
+
+        redisSubscriber.on('error', (err) => {
+            logger.error(`Redis Subscriber Error: ${err.message}`);
+        });
+
+        redisSubscriber.on('connect', () => {
+            logger.info('✅ Redis Subscriber Connected');
+        });
+
+        await redisSubscriber.connect();
+
+        // Subscribe to new email channel
+        await redisSubscriber.subscribe('new_email', (message) => {
+            try {
+                const emailData = JSON.parse(message);
+                logger.info(`📨 New email notification received via Redis: ${emailData.to}`);
+                
+                // Broadcast to WebSocket clients
+                if (emailData.to && emailData.message) {
+                    broadcastNewEmail(emailData.to, emailData.message);
+                }
+            } catch (error) {
+                logger.error(`Failed to process Redis email notification: ${error.message}`);
+            }
+        });
+
+        // Subscribe to email-specific channels (for targeted notifications)
+        await redisSubscriber.pSubscribe('channel:email:*', (message, channel) => {
+            try {
+                const emailData = JSON.parse(message);
+                const emailAddress = channel.replace('channel:email:', '');
+                logger.info(`📨 Targeted email notification for: ${emailAddress}`);
+                
+                if (emailData && emailAddress) {
+                    broadcastNewEmail(emailAddress, emailData);
+                }
+            } catch (error) {
+                logger.error(`Failed to process targeted email notification: ${error.message}`);
+            }
+        });
+
+        logger.info('🔔 Redis subscriber setup complete - listening for email notifications');
+    } catch (error) {
+        logger.error(`Failed to setup Redis subscriber: ${error.message}`);
+    }
+}
+
 // Initialize Redis connection
-connectRedis().catch(error => {
+connectRedis().then(() => {
+    // Setup subscriber after main Redis connection is established
+    if (redisConnected) {
+        setupRedisSubscriber();
+    }
+}).catch(error => {
     logger.error(`Failed to initialize Redis: ${error.message}`);
 });
 
@@ -938,6 +1005,17 @@ app.use(errorHandler);
 process.on('SIGTERM', async () => {
   logger.info('🛑 SIGTERM received, shutting down gracefully...');
   
+  // Close Redis subscriber
+  if (redisSubscriber) {
+    try {
+      await redisSubscriber.quit();
+      logger.info('✅ Redis subscriber connection closed');
+    } catch (error) {
+      logger.error(`Error closing Redis subscriber: ${error.message}`);
+    }
+  }
+  
+  // Close main Redis client
   if (redisClient && redisConnected) {
     try {
       await redisClient.quit();
@@ -953,6 +1031,17 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   logger.info('🛑 SIGINT received, shutting down gracefully...');
   
+  // Close Redis subscriber
+  if (redisSubscriber) {
+    try {
+      await redisSubscriber.quit();
+      logger.info('✅ Redis subscriber connection closed');
+    } catch (error) {
+      logger.error(`Error closing Redis subscriber: ${error.message}`);
+    }
+  }
+  
+  // Close main Redis client
   if (redisClient && redisConnected) {
     try {
       await redisClient.quit();

@@ -190,18 +190,7 @@ class EmailDetailScreen extends StatelessWidget {
                   'message content',
                 ),
               ),
-              PopupMenuItem(
-                child: const ListTile(
-                  leading: Icon(Icons.delete, color: Colors.red),
-                  title: Text('Delete', style: TextStyle(color: Colors.red)),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                onTap: () {
-                  Future.delayed(Duration.zero, () {
-                    _showDeleteConfirmation(context);
-                  });
-                },
-              ),
+
             ],
           ),
         ],
