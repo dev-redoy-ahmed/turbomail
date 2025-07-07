@@ -1151,10 +1151,19 @@ app.post('/api/mongodb/emails/store', validateApiKey, async (req, res) => {
     });
   } catch (error) {
     logger.error(`Failed to store generated email: ${error.message}`);
-    res.status(500).json({
-      error: 'Failed to store email',
-      message: error.message
-    });
+    
+    if (error.message === 'MongoDB not connected') {
+      res.status(503).json({
+        error: 'Database temporarily unavailable',
+        message: 'MongoDB connection is not established. Please try again later.',
+        fallback: 'Email generation is working, but storage is temporarily disabled.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to store email',
+        message: error.message
+      });
+    }
   }
 });
 
@@ -1182,10 +1191,21 @@ app.get('/api/mongodb/emails/user/:deviceId', validateApiKey, async (req, res) =
     });
   } catch (error) {
     logger.error(`Failed to fetch user emails: ${error.message}`);
-    res.status(500).json({
-      error: 'Failed to fetch user emails',
-      message: error.message
-    });
+    
+    if (error.message === 'MongoDB not connected') {
+      res.status(503).json({
+        error: 'Database temporarily unavailable',
+        message: 'MongoDB connection is not established. Email history is not available.',
+        fallback: 'Please check MongoDB Atlas configuration and IP whitelist.',
+        emails: [],
+        count: 0
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to fetch user emails',
+        message: error.message
+      });
+    }
   }
 });
 

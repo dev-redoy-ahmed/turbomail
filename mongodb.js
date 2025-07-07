@@ -2,13 +2,11 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 // MongoDB configuration
 const mongoConfig = {
-    uri: "mongodb+srv://turbomail:we1we2we3@turbomail.gjohjma.mongodb.net/?retryWrites=true&w=majority&appName=turbomail",
+    uri: "mongodb+srv://turbomail:we1we2we3@turbomail.gjohjma.mongodb.net/turbomail?retryWrites=true&w=majority",
     options: {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: true,
-            deprecationErrors: true,
-        }
+        // Simplified configuration without strict serverApi to avoid SSL issues
+        connectTimeoutMS: 10000,
+        serverSelectionTimeoutMS: 5000,
     }
 };
 
@@ -34,6 +32,7 @@ class MongoDBManager {
 
     async connect() {
         try {
+            console.log("🔄 Attempting to connect to MongoDB Atlas...");
             await this.client.connect();
             this.db = this.client.db(DB_NAME);
             
@@ -41,10 +40,21 @@ class MongoDBManager {
             await this.client.db("admin").command({ ping: 1 });
             this.isConnected = true;
             
-            console.log("✅ Successfully connected to MongoDB!");
+            console.log("✅ Successfully connected to MongoDB Atlas!");
             return true;
         } catch (error) {
-            console.error("❌ MongoDB connection failed:", error);
+            console.error("❌ MongoDB connection failed:");
+            console.error("Error type:", error.constructor.name);
+            console.error("Error message:", error.message);
+            
+            // Check for common issues
+            if (error.message.includes('SSL') || error.message.includes('TLS')) {
+                console.error("💡 SSL/TLS Error - This might be due to:");
+                console.error("   1. IP address not whitelisted in MongoDB Atlas");
+                console.error("   2. Network connectivity issues");
+                console.error("   3. MongoDB Atlas cluster configuration");
+            }
+            
             this.isConnected = false;
             return false;
         }
@@ -62,9 +72,15 @@ class MongoDBManager {
 
     getCollection(collectionName) {
         if (!this.isConnected || !this.db) {
+            console.warn(`⚠️  MongoDB not connected - operation on ${collectionName} collection skipped`);
             throw new Error('MongoDB not connected');
         }
         return this.db.collection(collectionName);
+    }
+
+    // Check if MongoDB is connected
+    isMongoConnected() {
+        return this.isConnected;
     }
 
     // Email operations
