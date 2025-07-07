@@ -12,8 +12,12 @@ class EmailListScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Copied: $text'),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color(0xFF0D1B2A),
         duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
@@ -21,22 +25,75 @@ class EmailListScreen extends StatelessWidget {
   void _showEmailOptions(BuildContext context, GeneratedEmail email) {
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Email Options',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0D1B2A),
+              ),
+            ),
+            const SizedBox(height: 20),
             ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copy Email'),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.copy,
+                  color: Color(0xFF0D1B2A),
+                ),
+              ),
+              title: const Text(
+                'Copy Email',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0D1B2A),
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _copyToClipboard(context, email.email);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.inbox),
-              title: const Text('Check Inbox'),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.inbox,
+                  color: Color(0xFF0D1B2A),
+                ),
+              ),
+              title: const Text(
+                'Check Inbox',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0D1B2A),
+                ),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 final emailProvider = Provider.of<EmailProvider>(context, listen: false);
@@ -44,8 +101,24 @@ class EmailListScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.star),
-              title: const Text('Set as Current'),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.star,
+                  color: Color(0xFF0D1B2A),
+                ),
+              ),
+              title: const Text(
+                'Set as Current',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0D1B2A),
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 final emailProvider = Provider.of<EmailProvider>(context, listen: false);
@@ -53,12 +126,12 @@ class EmailListScreen extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Set ${email.email} as current'),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF0D1B2A),
                   ),
                 );
               },
             ),
-
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -71,8 +144,10 @@ class EmailListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Emails'),
+        title: const Text('TempMail Pro'),
         centerTitle: true,
+        backgroundColor: const Color(0xFF0D1B2A),
+        foregroundColor: Colors.white,
         actions: [
           Consumer<EmailProvider>(
             builder: (context, emailProvider, child) {
@@ -92,25 +167,53 @@ class EmailListScreen extends StatelessWidget {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: const Text('Clear All Emails'),
-                            content: const Text('Remove all generated emails from the list?'),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Text(
+                              'Clear All Emails',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0D1B2A),
+                              ),
+                            ),
+                            content: const Text(
+                              'Remove all generated emails from the list?',
+                              style: TextStyle(
+                                color: Color(0xFF0D1B2A),
+                              ),
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.grey[600],
+                                ),
                                 child: const Text('Cancel'),
                               ),
-                              TextButton(
+                              ElevatedButton(
                                 onPressed: () {
                                   Navigator.pop(context);
                                   emailProvider.clearAll();
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('All emails cleared'),
+                                    SnackBar(
+                                      content: const Text('All emails cleared'),
                                       backgroundColor: Colors.orange,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   );
                                 },
-                                child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text('Clear All'),
                               ),
                             ],
                           ),
@@ -131,26 +234,35 @@ class EmailListScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.email_outlined,
-                    size: 80,
-                    color: Colors.grey[400],
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.email_outlined,
+                      size: 64,
+                      color: Color(0xFF0D1B2A),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 24),
+                  const Text(
                     'No emails generated yet',
                     style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
+                      fontSize: 20,
+                      color: Color(0xFF0D1B2A),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Go to Generate tab to create your first email',
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      fontSize: 16,
+                      color: Colors.grey[600],
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -164,60 +276,89 @@ class EmailListScreen extends StatelessWidget {
               final email = emailProvider.generatedEmails[index];
               final isCurrent = emailProvider.currentEmail?.email == email.email;
               
-              return Card(
+              return Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                elevation: isCurrent ? 4 : 2,
-                color: isCurrent ? Colors.blue[50] : null,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: CircleAvatar(
-                    backgroundColor: isCurrent ? Colors.blue : Colors.grey[300],
-                    child: Icon(
-                      isCurrent ? Icons.star : Icons.email,
-                      color: isCurrent ? Colors.white : Colors.grey[600],
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: isCurrent 
+                      ? Border.all(color: const Color(0xFF0D1B2A), width: 2)
+                      : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          email.email,
-                          style: TextStyle(
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            color: isCurrent ? Colors.blue[800] : null,
-                          ),
-                        ),
-                      ),
-                      if (isCurrent)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'CURRENT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  subtitle: Column(
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        'Generated: ${email.formattedTimestamp}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: isCurrent
+                                  ? const Color(0xFF0D1B2A)
+                                  : const Color(0xFF0D1B2A).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isCurrent ? Icons.star : Icons.email,
+                              color: isCurrent
+                                  ? Colors.white
+                                  : const Color(0xFF0D1B2A),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  email.email,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: Color(0xFF0D1B2A),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Generated: ${email.formattedTimestamp}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isCurrent)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D1B2A),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'CURRENT',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
@@ -228,26 +369,51 @@ class EmailListScreen extends StatelessWidget {
                               icon: const Icon(Icons.inbox, size: 16),
                               label: const Text('Check Inbox'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                textStyle: const TextStyle(fontSize: 12),
+                                backgroundColor: const Color(0xFF0D1B2A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              onPressed: () => _copyToClipboard(context, email.email),
+                              icon: const Icon(
+                                Icons.copy,
+                                color: Color(0xFF0D1B2A),
+                                size: 20,
+                              ),
+                              tooltip: 'Copy Email',
+                            ),
+                          ),
                           const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () => _copyToClipboard(context, email.email),
-                            icon: const Icon(Icons.copy, size: 20),
-                            tooltip: 'Copy Email',
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.grey[100],
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              onPressed: () => _showEmailOptions(context, email),
+                              icon: const Icon(
+                                Icons.more_vert,
+                                color: Color(0xFF0D1B2A),
+                                size: 20,
+                              ),
+                              tooltip: 'More Options',
                             ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  onTap: () => _showEmailOptions(context, email),
                 ),
               );
             },

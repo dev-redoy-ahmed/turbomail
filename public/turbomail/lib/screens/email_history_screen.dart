@@ -177,37 +177,27 @@ class _EmailHistoryScreenState extends State<EmailHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Email History'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        title: const Text('TempMail Pro'),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showDeviceInfo,
-            tooltip: 'Device Info',
+            icon: const Icon(Icons.settings),
+            onPressed: () {},
           ),
-          IconButton(
-             icon: Icon(_showActiveOnly ? Icons.visibility : Icons.visibility_off),
-             onPressed: () {
-               setState(() {
-                 _showActiveOnly = !_showActiveOnly;
-               });
-             },
-             tooltip: _showActiveOnly ? 'Show All' : 'Show Active Only',
-           ),
-           IconButton(
-             icon: const Icon(Icons.refresh),
-             onPressed: _refreshData,
-             tooltip: 'Refresh',
-           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF0D1B2A),
+              ),
+            )
           : Consumer<EmailProvider>(builder: (context, provider, child) {
         if (provider.isLoading) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(
+              color: Color(0xFF0D1B2A),
+            ),
           );
         }
 
@@ -216,20 +206,42 @@ class _EmailHistoryScreenState extends State<EmailHistoryScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Colors.red[300],
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Text(
                   'Error: ${provider.error}',
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _refreshData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D1B2A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   child: const Text('Retry'),
                 ),
               ],
@@ -244,31 +256,52 @@ class _EmailHistoryScreenState extends State<EmailHistoryScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.email_outlined,
-                  size: 64,
-                  color: Colors.grey[400],
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.email_outlined,
+                    size: 64,
+                    color: Color(0xFF0D1B2A),
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 Text(
                   _showActiveOnly 
                       ? 'No active emails found'
                       : 'No emails generated yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[600],
+                  style: const TextStyle(
+                    fontSize: 20,
+                    color: Color(0xFF0D1B2A),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Generate some emails to see them here',
                   style: TextStyle(
-                    color: Colors.grey[500],
+                    fontSize: 16,
+                    color: Colors.grey[600],
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D1B2A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   child: const Text('Generate Email'),
                 ),
               ],
@@ -280,136 +313,237 @@ class _EmailHistoryScreenState extends State<EmailHistoryScreen> {
           children: [
             // Filter toggle
             Container(
-              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
-                  Text(
+                  const Icon(
+                    Icons.filter_list,
+                    color: Color(0xFF0D1B2A),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
                     'Show active only',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0D1B2A),
+                    ),
                   ),
                   const Spacer(),
                   Switch(
                     value: _showActiveOnly,
                     onChanged: (value) => _toggleFilter(),
+                    activeColor: const Color(0xFF0D1B2A),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      onPressed: _refreshData,
+                      icon: const Icon(
+                        Icons.refresh,
+                        color: Color(0xFF0D1B2A),
+                      ),
+                      tooltip: 'Refresh',
+                    ),
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
             
             // Email list
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refreshData,
+                color: const Color(0xFF0D1B2A),
                 child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: emails.length,
                   itemBuilder: (context, index) {
                     final email = emails[index];
                     final isCurrentEmail = provider.currentEmail?.id == email.id;
+                    final isExpired = email.expiresAt?.isBefore(DateTime.now()) ?? false;
                     
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: isCurrentEmail 
+                            ? Border.all(color: const Color(0xFF0D1B2A), width: 2)
+                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      elevation: isCurrentEmail ? 4 : 1,
-                      color: isCurrentEmail 
-                          ? Colors.blue[50] 
-                          : email.isActive 
-                              ? Colors.green[50] 
-                              : null,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isCurrentEmail 
-                              ? Colors.blue 
-                              : email.isActive 
-                                  ? Colors.green 
-                                  : Colors.grey,
-                          child: Icon(
-                            isCurrentEmail 
-                                ? Icons.star 
-                                : email.isActive 
-                                    ? Icons.check 
-                                    : Icons.email,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                        title: Text(
-                          email.email,
-                          style: TextStyle(
-                            fontWeight: isCurrentEmail 
-                                ? FontWeight.bold 
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
                           children: [
-                            Text('Type: ${email.type}'),
-                            if (email.createdAt != null)
-                              Text(
-                                'Created: ${DateFormat('MMM dd, yyyy HH:mm').format(email.createdAt!)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: isCurrentEmail
+                                    ? const Color(0xFF0D1B2A)
+                                    : isExpired 
+                                        ? Colors.red.withOpacity(0.1)
+                                        : email.isActive
+                                            ? Colors.green.withOpacity(0.1)
+                                            : Colors.grey.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            if (email.expiresAt != null)
-                              Text(
-                                'Expires: ${DateFormat('MMM dd, yyyy HH:mm').format(email.expiresAt!)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: email.expiresAt!.isBefore(DateTime.now()) 
-                                      ? Colors.red[600] 
-                                      : Colors.grey[600],
-                                ),
-                              ),
-                          ],
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'copy':
-                                _copyToClipboard(email.email);
-                                break;
-                              case 'switch':
-                                _switchToEmail(email);
-                                break;
-                              case 'delete':
-                                _showDeleteConfirmation(email);
-                                break;
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => [
-                            const PopupMenuItem(
-                              value: 'copy',
-                              child: ListTile(
-                                leading: Icon(Icons.copy),
-                                title: Text('Copy Email'),
-                                contentPadding: EdgeInsets.zero,
+                              child: Icon(
+                                isCurrentEmail 
+                                    ? Icons.star 
+                                    : email.isActive 
+                                        ? Icons.check 
+                                        : Icons.email,
+                                color: isCurrentEmail
+                                    ? Colors.white
+                                    : isExpired 
+                                        ? Colors.red
+                                        : email.isActive
+                                            ? Colors.green
+                                            : Colors.grey,
+                                size: 24,
                               ),
                             ),
-                            if (!isCurrentEmail)
-                              const PopupMenuItem(
-                                value: 'switch',
-                                child: ListTile(
-                                  leading: Icon(Icons.swap_horiz),
-                                  title: Text('Switch to This'),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    email.email,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: isExpired ? Colors.grey[600] : const Color(0xFF0D1B2A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Type: ${email.type}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  if (email.createdAt != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Created: ${DateFormat('MMM dd, yyyy HH:mm').format(email.createdAt!)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                  ],
+                                  if (email.expiresAt != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Expires: ${DateFormat('MMM dd, yyyy HH:mm').format(email.expiresAt!)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isExpired ? Colors.red : Colors.grey[500],
+                                        fontWeight: isExpired ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                  if (isCurrentEmail)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0D1B2A),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'CURRENT',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: ListTile(
-                                leading: Icon(Icons.delete, color: Colors.red),
-                                title: Text('Delete', style: TextStyle(color: Colors.red)),
-                                contentPadding: EdgeInsets.zero,
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: PopupMenuButton<String>(
+                                icon: const Icon(
+                                  Icons.more_vert,
+                                  color: Color(0xFF0D1B2A),
+                                ),
+                                onSelected: (value) {
+                                  switch (value) {
+                                    case 'copy':
+                                      _copyToClipboard(email.email);
+                                      break;
+                                    case 'switch':
+                                      _switchToEmail(email);
+                                      break;
+                                    case 'delete':
+                                      _showDeleteConfirmation(email);
+                                      break;
+                                  }
+                                },
+                                itemBuilder: (BuildContext context) => [
+                                  const PopupMenuItem(
+                                    value: 'copy',
+                                    child: ListTile(
+                                      leading: Icon(Icons.copy, color: Color(0xFF0D1B2A)),
+                                      title: Text('Copy Email'),
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                  if (!isCurrentEmail)
+                                    const PopupMenuItem(
+                                      value: 'switch',
+                                      child: ListTile(
+                                        leading: Icon(Icons.swap_horiz, color: Color(0xFF0D1B2A)),
+                                        title: Text('Switch to This'),
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: ListTile(
+                                      leading: Icon(Icons.delete, color: Colors.red),
+                                      title: Text('Delete', style: TextStyle(color: Colors.red)),
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        onTap: () => _copyToClipboard(email.email),
                       ),
                     );
                   },

@@ -54,100 +54,144 @@ class _InboxScreenState extends State<InboxScreen> {
 
 
   Widget _buildEmailInput() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Check Inbox',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Check Inbox',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D1B2A),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email Address',
-                      hintText: 'Enter email to check inbox',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'Enter email to check inbox',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    keyboardType: TextInputType.emailAddress,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0D1B2A),
+                        width: 2,
+                      ),
+                    ),
+                    prefixIcon: const Icon(Icons.email, color: Color(0xFF0D1B2A)),
                   ),
+                  keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(width: 8),
-                Consumer<EmailProvider>(
-                  builder: (context, emailProvider, child) {
-                    return IconButton(
+              ),
+              const SizedBox(width: 12),
+              Consumer<EmailProvider>(
+                builder: (context, emailProvider, child) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1B2A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
                       onPressed: emailProvider.isLoading
                           ? null
                           : () async {
                               if (_emailController.text.trim().isNotEmpty) {
                                 await emailProvider.getInbox(_emailController.text.trim());
-                                _startAutoRefresh(); // Start auto-refresh after loading inbox
+                                _startAutoRefresh();
                               }
                             },
                       icon: emailProvider.isLoading
                           ? const SpinKitThreeBounce(
-                              color: Colors.blue,
+                              color: Colors.white,
                               size: 20,
                             )
-                          : const Icon(Icons.search),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
+                          : const Icon(Icons.search, color: Colors.white),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Consumer<EmailProvider>(
+            builder: (context, emailProvider, child) {
+              if (emailProvider.generatedEmails.isNotEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Select:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF0D1B2A),
+                        fontWeight: FontWeight.w600,
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Consumer<EmailProvider>(
-              builder: (context, emailProvider, child) {
-                if (emailProvider.generatedEmails.isNotEmpty) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Quick Select:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        children: emailProvider.generatedEmails.map((email) {
-                          return ActionChip(
-                            label: Text(
-                              email.email,
-                              style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: emailProvider.generatedEmails.map((email) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF0D1B2A).withOpacity(0.3),
                             ),
-                            onPressed: () async {
+                          ),
+                          child: InkWell(
+                            onTap: () async {
                               _emailController.text = email.email;
                               await emailProvider.getInbox(email.email);
-                              _startAutoRefresh(); // Start auto-refresh after loading inbox
+                              _startAutoRefresh();
                             },
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  );
-                }
-                return const SizedBox();
-              },
-            ),
-          ],
-        ),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              child: Text(
+                                email.email,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF0D1B2A),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+        ],
       ),
     );
   }
@@ -158,26 +202,35 @@ class _InboxScreenState extends State<InboxScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 80,
-              color: Colors.grey[400],
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.inbox_outlined,
+                size: 64,
+                color: Color(0xFF0D1B2A),
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'No inbox selected',
               style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                color: Color(0xFF0D1B2A),
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Enter an email address to check its inbox',
               style: TextStyle(
-                color: Colors.grey[500],
+                fontSize: 16,
+                color: Colors.grey[600],
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -191,32 +244,52 @@ class _InboxScreenState extends State<InboxScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.mail_outline,
-              size: 80,
-              color: Colors.grey[400],
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.mail_outline,
+                size: 64,
+                color: Color(0xFF0D1B2A),
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'No messages',
               style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                color: Color(0xFF0D1B2A),
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Inbox for ${inbox.email} is empty',
               style: TextStyle(
-                color: Colors.grey[500],
+                fontSize: 16,
+                color: Colors.grey[600],
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => emailProvider.refreshInbox(),
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0D1B2A),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ],
         ),
@@ -226,52 +299,77 @@ class _InboxScreenState extends State<InboxScreen> {
     return Column(
       children: [
         // Inbox Header
-        Card(
-          color: Colors.blue[50],
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        inbox.email,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D1B2A),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      inbox.email,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
-                      Text(
-                        '${inbox.count} message${inbox.count != 1 ? 's' : ''}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${inbox.count} message${inbox.count != 1 ? 's' : ''}',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                IconButton(
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
                   onPressed: _toggleAutoRefresh,
                   icon: Icon(
                     _autoRefreshEnabled ? Icons.pause : Icons.play_arrow,
-                    color: _autoRefreshEnabled ? Colors.green : Colors.grey,
+                    color: _autoRefreshEnabled ? Colors.green[300] : Colors.white,
                   ),
                   tooltip: _autoRefreshEnabled ? 'Stop Auto-Refresh' : 'Start Auto-Refresh',
                 ),
-                IconButton(
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
                   onPressed: () {
                     emailProvider.refreshInbox();
                     if (_autoRefreshEnabled) {
-                      _startAutoRefresh(); // Restart timer
+                      _startAutoRefresh();
                     }
                   },
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(Icons.refresh, color: Colors.white),
                   tooltip: 'Manual Refresh',
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         
@@ -283,72 +381,101 @@ class _InboxScreenState extends State<InboxScreen> {
             itemBuilder: (context, index) {
               final message = inbox.messages[index];
               
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
+              return Container(
+                margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
+                  contentPadding: const EdgeInsets.all(20),
                   leading: CircleAvatar(
-                    backgroundColor: Colors.blue[100],
+                    backgroundColor: const Color(0xFF0D1B2A),
+                    radius: 24,
                     child: Text(
                       message.from.isNotEmpty ? message.from[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: Colors.blue[800],
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
                   title: Text(
                     message.subject.isNotEmpty ? message.subject : 'No Subject',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF0D1B2A),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         'From: ${message.from}',
                         style: TextStyle(
                           color: Colors.grey[600],
-                          fontSize: 12,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         message.shortContent,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.grey[700],
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         message.formattedDate,
                         style: TextStyle(
                           color: Colors.grey[500],
-                          fontSize: 11,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                  trailing: IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EmailDetailScreen(
-                            message: message,
-                            emailAddress: inbox.email,
-                            messageIndex: index,
+                  trailing: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1B2A).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EmailDetailScreen(
+                              message: message,
+                              emailAddress: inbox.email,
+                              messageIndex: index,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.visibility),
-                    tooltip: 'View Email',
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF0D1B2A),
+                        size: 18,
+                      ),
+                      tooltip: 'View Email',
+                    ),
                   ),
                   onTap: () {
                     Navigator.push(
@@ -375,8 +502,14 @@ class _InboxScreenState extends State<InboxScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inbox'),
+        title: const Text('TempMail Pro'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.settings),
+          ),
+        ],
       ),
       body: Consumer<EmailProvider>(
         builder: (context, emailProvider, child) {
@@ -388,27 +521,27 @@ class _InboxScreenState extends State<InboxScreen> {
               if (emailProvider.errorMessage != null)
                 Container(
                   margin: const EdgeInsets.all(16),
-                  child: Card(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
                     color: Colors.red[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              emailProvider.errorMessage!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: emailProvider.clearError,
-                            icon: const Icon(Icons.close, color: Colors.red),
-                          ),
-                        ],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          emailProvider.errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ),
-                    ),
+                      IconButton(
+                        onPressed: emailProvider.clearError,
+                        icon: const Icon(Icons.close, color: Colors.red),
+                      ),
+                    ],
                   ),
                 ),
               
@@ -417,7 +550,7 @@ class _InboxScreenState extends State<InboxScreen> {
                 child: emailProvider.isLoading
                     ? const Center(
                         child: SpinKitThreeBounce(
-                          color: Colors.blue,
+                          color: Color(0xFF0D1B2A),
                           size: 30,
                         ),
                       )

@@ -352,7 +352,7 @@ async function updateEmailTTL(email, ttlSeconds) {
 app.get('/generate', validateApiKey, async (req, res) => {
   const domains = loadDomains();
   const randomDomain = domains[Math.floor(Math.random() * domains.length)];
-  const randomUsername = crypto.randomBytes(8).toString('hex');
+  const randomUsername = crypto.randomBytes(4).toString('hex');
   const email = `${randomUsername}@${randomDomain}`;
   
   // Set TTL for auto-generated email (1 hour)

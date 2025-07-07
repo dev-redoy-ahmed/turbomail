@@ -37,323 +37,415 @@ class _GenerateEmailScreenState extends State<GenerateEmailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Email'),
+        title: const Text('TempMail Pro'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: Consumer<EmailProvider>(
         builder: (context, emailProvider, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Mode Toggle
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Email Generation Mode',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+          return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF0D1B2A),
+                Color(0xFF1A2B3D),
+              ],
+            ),
+          ),
+          child: Column(
+            children: [
+              // Top section with email display
+              Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Current email display
+                    if (emailProvider.currentEmail != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D1B2A),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        ToggleButtons(
-                          isSelected: [!_isManualMode, _isManualMode],
-                          onPressed: (index) {
-                            setState(() {
-                              _isManualMode = index == 1;
-                            });
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          children: const [
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('Random'),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.email_outlined,
+                              color: Colors.white,
+                              size: 24,
                             ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('Manual'),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                emailProvider.currentEmail!.email,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => _copyToClipboard(
+                                emailProvider.currentEmail!.email,
+                              ),
+                              icon: const Icon(
+                                Icons.content_copy,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ],
                         ),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D1B2A),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.email_outlined,
+                              color: Colors.white54,
+                              size: 24,
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Enter Username',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    
+                    // Domain selector
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1B2A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedDomain,
+                          dropdownColor: const Color(0xFF0D1B2A),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                          ),
+                          items: emailProvider.getAvailableDomains()
+                              .map((domain) => DropdownMenuItem(
+                                    value: domain,
+                                    child: Text(
+                                      domain,
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() {
+                                _selectedDomain = value;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Action buttons row
+                    Row(
+                      children: [
+                        // Refresh button
+                        Expanded(
+                          child: Container(
+                            height: 50,
+                            margin: const EdgeInsets.only(right: 8),
+                            child: ElevatedButton(
+                              onPressed: emailProvider.isLoading
+                                  ? null
+                                  : () async {
+                                      await emailProvider.generateRandomEmail();
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.1),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                ),
+                              ),
+                              child: emailProvider.isLoading
+                                  ? const SpinKitThreeBounce(
+                                      color: Colors.white,
+                                      size: 20,
+                                    )
+                                  : const Icon(Icons.refresh),
+                            ),
+                          ),
+                        ),
+                        // New button
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            height: 50,
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            child: ElevatedButton(
+                              onPressed: emailProvider.isLoading
+                                  ? null
+                                  : () async {
+                                      if (_isManualMode && _usernameController.text.trim().isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Please enter a username'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      if (_isManualMode) {
+                                        await emailProvider.generateManualEmail(
+                                          _usernameController.text.trim(),
+                                          _selectedDomain,
+                                        );
+                                      } else {
+                                        await emailProvider.generateRandomEmail();
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF0D1B2A),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: emailProvider.isLoading
+                                  ? const SpinKitThreeBounce(
+                                      color: Color(0xFF0D1B2A),
+                                      size: 20,
+                                    )
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.add),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'New',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                        // Delete button
+                        Expanded(
+                          child: Container(
+                            height: 50,
+                            margin: const EdgeInsets.only(left: 8),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // Delete functionality
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.1),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                ),
+                              ),
+                              child: const Icon(Icons.delete_outline),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 16),
+              ),
+              
+              // Bottom section with white background
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        // Manual mode toggle
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Manual Mode',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: _isManualMode,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _isManualMode = value;
+                                      });
+                                    },
+                                    activeColor: const Color(0xFF0D1B2A),
+                                  ),
+                                ],
+                              ),
+                              if (_isManualMode) ...[
+                                const SizedBox(height: 16),
+                                TextField(
+                                  controller: _usernameController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Enter Username',
+                                    hintText: 'Type your username here',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF0D1B2A),
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
 
-                // Manual Mode Form
-                if (_isManualMode) ...
-                [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Custom Email Configuration',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _usernameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Username',
-                              hintText: 'Enter username (e.g., john)',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.person),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: _selectedDomain,
-                            decoration: const InputDecoration(
-                              labelText: 'Domain',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.domain),
-                            ),
-                            items: emailProvider.getAvailableDomains()
-                                .map((domain) => DropdownMenuItem(
-                                      value: domain,
-                                      child: Text(domain),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() {
-                                  _selectedDomain = value;
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 16),
+                        // Empty state message
+                        if (emailProvider.currentEmail == null)
                           Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: Row(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
                               children: [
-                                const Icon(Icons.preview, color: Colors.grey),
-                                const SizedBox(width: 8),
-                                const Text('Preview: '),
+                                Icon(
+                                  Icons.email_outlined,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
                                 Text(
-                                  _usernameController.text.isEmpty
-                                      ? 'username@$_selectedDomain'
-                                      : '${_usernameController.text}@$_selectedDomain',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  'There is no Email !',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Please Refresh the page to get Emails.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Generate Button
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: emailProvider.isLoading
-                        ? null
-                        : () async {
-                            if (_isManualMode) {
-                              if (_usernameController.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please enter a username'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-                              await emailProvider.generateManualEmail(
-                                _usernameController.text.trim(),
-                                _selectedDomain,
-                              );
-                            } else {
-                              await emailProvider.generateRandomEmail();
-                            }
-                          },
-                    icon: emailProvider.isLoading
-                        ? const SpinKitThreeBounce(
-                            color: Colors.white,
-                            size: 20,
-                          )
-                        : const Icon(Icons.email),
-                    label: Text(
-                      emailProvider.isLoading
-                          ? 'Generating...'
-                          : _isManualMode
-                              ? 'Generate Custom Email'
-                              : 'Generate Random Email',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Error Message
-                if (emailProvider.errorMessage != null)
-                  Card(
-                    color: Colors.red[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.red),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              emailProvider.errorMessage!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: emailProvider.clearError,
-                            icon: const Icon(Icons.close, color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Current Generated Email
-                if (emailProvider.currentEmail != null) ...
-                [
-                  const SizedBox(height: 16),
-                  Card(
-                    color: Colors.green[50],
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.check_circle, color: Colors.green),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Email Generated Successfully!',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
+                        
+                        // Error Message
+                        if (emailProvider.errorMessage != null)
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            margin: const EdgeInsets.only(bottom: 16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green[200]!),
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red[200]!),
                             ),
                             child: Row(
                               children: [
+                                const Icon(Icons.error_outline, color: Colors.red),
+                                const SizedBox(width: 12),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Email Address:',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                      Text(
-                                        emailProvider.currentEmail!.email,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    emailProvider.errorMessage!,
+                                    style: const TextStyle(color: Colors.red),
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed: () => _copyToClipboard(
-                                    emailProvider.currentEmail!.email,
-                                  ),
-                                  icon: const Icon(Icons.copy),
-                                  tooltip: 'Copy Email',
+                                  onPressed: emailProvider.clearError,
+                                  icon: const Icon(Icons.close, color: Colors.red),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    await emailProvider.getInbox(
-                                      emailProvider.currentEmail!.email,
-                                    );
-                                  },
-                                  icon: const Icon(Icons.inbox),
-                                  label: const Text('Check Inbox'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Instructions
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.info, color: Theme.of(context).primaryColor),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'How to use TurboMail',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          '1. Generate a temporary email address\n'
-                          '2. Use it for registrations or testing\n'
-                          '3. Check inbox for received emails\n'
-                          '4. Delete emails when done',
-                          style: TextStyle(height: 1.5),
-                        ),
                       ],
                     ),
                   ),
                 ),
+              )
               ],
             ),
           );
