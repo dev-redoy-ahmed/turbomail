@@ -193,6 +193,10 @@ connectRedis().then(() => {
 mongoManager.connect().then((connected) => {
     if (connected) {
         logger.info('✅ MongoDB initialized successfully');
+        
+        // Start periodic cleanup for expired emails
+        mongoManager.startPeriodicCleanup(30); // Run every 30 minutes
+        logger.info('🔄 TTL-based email expiration system activated');
     } else {
         logger.error('❌ Failed to initialize MongoDB');
     }
@@ -1258,6 +1262,132 @@ app.delete('/api/mongodb/emails/:id', validateApiKey, async (req, res) => {
       error: 'Failed to delete generated email',
       message: error.message
     });
+  }
+});
+
+// MongoDB TTL Management Endpoints
+
+// Extend Email TTL
+app.put('/api/mongodb/emails/:id/extend-ttl', validateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { additionalSeconds = 3600 } = req.body;
+    
+    if (typeof additionalSeconds !== 'number' || additionalSeconds <= 0) {
+      return res.status(400).json({ error: 'additionalSeconds must be a positive number' });
+    }
+    
+    const { ObjectId } = require('mongodb');
+    const result = await mongoManager.extendEmailTTL(new ObjectId(id), additionalSeconds);
+    
+    if (result.modifiedCount > 0) {
+      res.json({ 
+        message: 'Email TTL extended successfully', 
+        modifiedCount: result.modifiedCount,
+        additionalSeconds,
+        newExpiresAt: new Date(Date.now() + additionalSeconds * 1000).toISOString()
+      });
+    } else {
+      res.status(404).json({ error: 'Email not found' });
+    }
+  } catch (error) {
+    logger.error(`Failed to extend email TTL: ${error.message}`);
+    
+    if (error.message === 'MongoDB not connected') {
+      res.status(503).json({
+        error: 'Database temporarily unavailable',
+        message: 'MongoDB connection is not established. Please try again later.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to extend email TTL',
+        message: error.message
+      });
+    }
+  }
+});
+
+// Manual Cleanup of Expired Emails
+app.post('/api/mongodb/emails/cleanup', validateApiKey, async (req, res) => {
+  try {
+    const { action = 'deactivate' } = req.body; // 'deactivate' or 'delete'
+    
+    let result;
+    if (action === 'delete') {
+      result = await mongoManager.cleanupExpiredEmails();
+      res.json({ 
+        message: 'Expired emails deleted successfully', 
+        deletedCount: result.deletedCount,
+        action: 'deleted'
+      });
+    } else {
+      result = await mongoManager.deactivateExpiredEmails();
+      res.json({ 
+        message: 'Expired emails deactivated successfully', 
+        modifiedCount: result.modifiedCount,
+        action: 'deactivated'
+      });
+    }
+  } catch (error) {
+    logger.error(`Failed to cleanup expired emails: ${error.message}`);
+    
+    if (error.message === 'MongoDB not connected') {
+      res.status(503).json({
+        error: 'Database temporarily unavailable',
+        message: 'MongoDB connection is not established. Please try again later.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to cleanup expired emails',
+        message: error.message
+      });
+    }
+  }
+});
+
+// Get Email Expiration Status
+app.get('/api/mongodb/emails/:id/expiration', validateApiKey, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { ObjectId } = require('mongodb');
+    
+    const collection = mongoManager.getCollection('generated_emails');
+    const email = await collection.findOne({ _id: new ObjectId(id) });
+    
+    if (!email) {
+      return res.status(404).json({ error: 'Email not found' });
+    }
+    
+    const now = new Date();
+    const isExpired = email.expiresAt && new Date(email.expiresAt) < now;
+    const timeUntilExpiry = email.expiresAt ? new Date(email.expiresAt).getTime() - now.getTime() : null;
+    
+    res.json({
+      emailId: id,
+      email: email.email,
+      isActive: email.isActive,
+      isExpired,
+      expiresAt: email.expiresAt,
+      ttl: email.ttl,
+      timeUntilExpiryMs: timeUntilExpiry > 0 ? timeUntilExpiry : 0,
+      timeUntilExpiryHuman: timeUntilExpiry > 0 ? `${Math.floor(timeUntilExpiry / 1000 / 60)} minutes` : 'Expired',
+      createdAt: email.createdAt,
+      updatedAt: email.updatedAt
+    });
+  } catch (error) {
+    logger.error(`Failed to get email expiration status: ${error.message}`);
+    
+    if (error.message === 'MongoDB not connected') {
+      res.status(503).json({
+        error: 'Database temporarily unavailable',
+        message: 'MongoDB connection is not established. Please try again later.'
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to get email expiration status',
+        message: error.message
+      });
+    }
   }
 });
 

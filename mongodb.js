@@ -40,6 +40,9 @@ class MongoDBManager {
             await this.client.db("admin").command({ ping: 1 });
             this.isConnected = true;
             
+            // Setup TTL indexes for automatic expiration
+            await this.setupTTLIndexes();
+            
             console.log("✅ Successfully connected to MongoDB Atlas!");
             return true;
         } catch (error) {
@@ -81,6 +84,31 @@ class MongoDBManager {
     // Check if MongoDB is connected
     isMongoConnected() {
         return this.isConnected;
+    }
+
+    // Setup TTL indexes for automatic document expiration
+    async setupTTLIndexes() {
+        try {
+            if (!this.isConnected) return;
+            
+            // Create TTL index on generated_emails collection
+            const generatedEmailsCollection = this.getCollection('generated_emails');
+            await generatedEmailsCollection.createIndex(
+                { "expiresAt": 1 },
+                { expireAfterSeconds: 0 }
+            );
+            
+            // Create TTL index on analytics collection (expire after 30 days)
+            const analyticsCollection = this.getCollection(COLLECTIONS.ANALYTICS);
+            await analyticsCollection.createIndex(
+                { "timestamp": 1 },
+                { expireAfterSeconds: 30 * 24 * 60 * 60 } // 30 days
+            );
+            
+            console.log("✅ TTL indexes created successfully");
+        } catch (error) {
+            console.error("⚠️ Error creating TTL indexes:", error.message);
+        }
     }
 
     // Email operations
@@ -197,10 +225,21 @@ class MongoDBManager {
     async saveGeneratedEmail(emailData) {
         try {
             const collection = this.getCollection('generated_emails');
+            
+            // Calculate expiration time (default 1 hour)
+            const ttlSeconds = emailData.ttl || 3600; // 1 hour default
+            const expiresAt = new Date(Date.now() + (ttlSeconds * 1000));
+            
             const result = await collection.insertOne({
                 ...emailData,
-                createdAt: emailData.createdAt || new Date()
+                createdAt: emailData.createdAt || new Date(),
+                ttl: ttlSeconds,
+                expiresAt: expiresAt,
+                isActive: emailData.isActive !== undefined ? emailData.isActive : true,
+                updatedAt: new Date()
             });
+            
+            console.log(`📧 Email saved with TTL: ${ttlSeconds}s, expires at: ${expiresAt.toISOString()}`);
             return result;
         } catch (error) {
             console.error('Error saving generated email:', error);
@@ -265,6 +304,126 @@ class MongoDBManager {
         } catch (error) {
             console.error('Error fetching active email for user:', error);
             throw error;
+        }
+    }
+
+    // TTL and expiration management methods
+    async extendEmailTTL(emailId, additionalSeconds = 3600) {
+        try {
+            const collection = this.getCollection('generated_emails');
+            const email = await collection.findOne({ _id: emailId });
+            
+            if (!email) {
+                throw new Error('Email not found');
+            }
+            
+            const newExpiresAt = new Date(Date.now() + (additionalSeconds * 1000));
+            
+            const result = await collection.updateOne(
+                { _id: emailId },
+                { 
+                    $set: { 
+                        expiresAt: newExpiresAt,
+                        ttl: additionalSeconds,
+                        updatedAt: new Date()
+                    }
+                }
+            );
+            
+            console.log(`⏰ Email TTL extended to: ${newExpiresAt.toISOString()}`);
+            return result;
+        } catch (error) {
+            console.error('Error extending email TTL:', error);
+            throw error;
+        }
+    }
+
+    async cleanupExpiredEmails() {
+        try {
+            const collection = this.getCollection('generated_emails');
+            const now = new Date();
+            
+            // Find and delete manually expired emails (backup cleanup)
+            const result = await collection.deleteMany({
+                expiresAt: { $lt: now }
+            });
+            
+            if (result.deletedCount > 0) {
+                console.log(`🗑️ Manually cleaned up ${result.deletedCount} expired emails`);
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Error cleaning up expired emails:', error);
+            throw error;
+        }
+    }
+
+    async deactivateExpiredEmails() {
+        try {
+            const collection = this.getCollection('generated_emails');
+            const now = new Date();
+            
+            // Deactivate expired emails instead of deleting
+            const result = await collection.updateMany(
+                { 
+                    expiresAt: { $lt: now },
+                    isActive: true
+                },
+                { 
+                    $set: { 
+                        isActive: false,
+                        deactivatedAt: now,
+                        updatedAt: now
+                    }
+                }
+            );
+            
+            if (result.modifiedCount > 0) {
+                console.log(`⏸️ Deactivated ${result.modifiedCount} expired emails`);
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Error deactivating expired emails:', error);
+            throw error;
+        }
+    }
+
+    // Scheduled cleanup for expired emails
+    startPeriodicCleanup(intervalMinutes = 30) {
+        if (!this.isConnected) {
+            console.log("⚠️ MongoDB not connected, skipping periodic cleanup setup");
+            return;
+        }
+        
+        const intervalMs = intervalMinutes * 60 * 1000;
+        
+        // Run cleanup immediately
+        this.deactivateExpiredEmails();
+        
+        // Schedule periodic cleanup
+        this.cleanupInterval = setInterval(async () => {
+            try {
+                await this.deactivateExpiredEmails();
+                // Optional: Also run manual cleanup every 2 hours
+                const now = new Date();
+                if (now.getMinutes() === 0 && now.getHours() % 2 === 0) {
+                    await this.cleanupExpiredEmails();
+                }
+            } catch (error) {
+                console.error('Error in periodic cleanup:', error);
+            }
+        }, intervalMs);
+        
+        console.log(`🔄 Periodic email cleanup started (every ${intervalMinutes} minutes)`);
+    }
+    
+    stopPeriodicCleanup() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+            console.log("⏹️ Periodic email cleanup stopped");
         }
     }
 
