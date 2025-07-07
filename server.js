@@ -22,7 +22,7 @@ const config = {
     port: process.env.PORT || 3001,
     apiKey: 'supersecretapikey123',
     redis: {
-        url: 'redis://:we1we2we3@165.22.97.51:6379',
+        url: 'redis://:we1we2we3@127.0.0.1:6379',
         retryAttempts: 5,
         retryDelay: 2000
     },

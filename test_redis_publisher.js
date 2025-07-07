@@ -12,7 +12,7 @@ const crypto = require('crypto');
 // Configuration
 const config = {
     redis: {
-        url: process.env.REDIS_URL || 'redis://:we1we2we3@165.22.97.51:6379'
+        url: process.env.REDIS_URL || 'redis://:we1we2we3@127.0.0.1:6379'
     }
 };
 
