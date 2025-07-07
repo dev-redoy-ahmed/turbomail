@@ -91,21 +91,15 @@ class MongoDBManager {
         try {
             if (!this.isConnected) return;
             
-            // Create TTL index on generated_emails collection
-            const generatedEmailsCollection = this.getCollection('generated_emails');
-            await generatedEmailsCollection.createIndex(
-                { "expiresAt": 1 },
-                { expireAfterSeconds: 0 }
-            );
-            
-            // Create TTL index on analytics collection (expire after 30 days)
+            // TTL will be handled by application logic, no automatic expiration
+            // Only create TTL index on analytics collection (expire after 30 days)
             const analyticsCollection = this.getCollection(COLLECTIONS.ANALYTICS);
             await analyticsCollection.createIndex(
                 { "timestamp": 1 },
                 { expireAfterSeconds: 30 * 24 * 60 * 60 } // 30 days
             );
             
-            console.log("✅ TTL indexes created successfully");
+            console.log("✅ TTL indexes created successfully (analytics only)");
         } catch (error) {
             console.error("⚠️ Error creating TTL indexes:", error.message);
         }
@@ -226,20 +220,18 @@ class MongoDBManager {
         try {
             const collection = this.getCollection('generated_emails');
             
-            // Calculate expiration time (default 1 hour)
+            // TTL will be handled by lifetime, no expiration needed
             const ttlSeconds = emailData.ttl || 3600; // 1 hour default
-            const expiresAt = new Date(Date.now() + (ttlSeconds * 1000));
             
             const result = await collection.insertOne({
                 ...emailData,
                 createdAt: emailData.createdAt || new Date(),
                 ttl: ttlSeconds,
-                expiresAt: expiresAt,
                 isActive: emailData.isActive !== undefined ? emailData.isActive : true,
                 updatedAt: new Date()
             });
             
-            console.log(`📧 Email saved with TTL: ${ttlSeconds}s, expires at: ${expiresAt.toISOString()}`);
+            console.log(`📧 Email saved with TTL: ${ttlSeconds}s (lifetime based)`);
             return result;
         } catch (error) {
             console.error('Error saving generated email:', error);
@@ -317,20 +309,17 @@ class MongoDBManager {
                 throw new Error('Email not found');
             }
             
-            const newExpiresAt = new Date(Date.now() + (additionalSeconds * 1000));
-            
             const result = await collection.updateOne(
                 { _id: emailId },
                 { 
                     $set: { 
-                        expiresAt: newExpiresAt,
                         ttl: additionalSeconds,
                         updatedAt: new Date()
                     }
                 }
             );
             
-            console.log(`⏰ Email TTL extended to: ${newExpiresAt.toISOString()}`);
+            console.log(`⏰ Email TTL extended to: ${additionalSeconds}s (lifetime based)`);
             return result;
         } catch (error) {
             console.error('Error extending email TTL:', error);
@@ -343,13 +332,18 @@ class MongoDBManager {
             const collection = this.getCollection('generated_emails');
             const now = new Date();
             
-            // Find and delete manually expired emails (backup cleanup)
+            // Cleanup based on TTL and creation time (lifetime based)
             const result = await collection.deleteMany({
-                expiresAt: { $lt: now }
+                $expr: {
+                    $lt: [
+                        { $add: ["$createdAt", { $multiply: ["$ttl", 1000] }] },
+                        now
+                    ]
+                }
             });
             
             if (result.deletedCount > 0) {
-                console.log(`🗑️ Manually cleaned up ${result.deletedCount} expired emails`);
+                console.log(`🗑️ Manually cleaned up ${result.deletedCount} expired emails (lifetime based)`);
             }
             
             return result;
@@ -364,10 +358,15 @@ class MongoDBManager {
             const collection = this.getCollection('generated_emails');
             const now = new Date();
             
-            // Deactivate expired emails instead of deleting
+            // Deactivate expired emails based on TTL and creation time (lifetime based)
             const result = await collection.updateMany(
                 { 
-                    expiresAt: { $lt: now },
+                    $expr: {
+                        $lt: [
+                            { $add: ["$createdAt", { $multiply: ["$ttl", 1000] }] },
+                            now
+                        ]
+                    },
                     isActive: true
                 },
                 { 
@@ -380,7 +379,7 @@ class MongoDBManager {
             );
             
             if (result.modifiedCount > 0) {
-                console.log(`⏸️ Deactivated ${result.modifiedCount} expired emails`);
+                console.log(`⏸️ Deactivated ${result.modifiedCount} expired emails (lifetime based)`);
             }
             
             return result;

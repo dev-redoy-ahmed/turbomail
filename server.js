@@ -1401,6 +1401,53 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Temporary admin endpoint to remove expiresAt field from MongoDB
+app.get('/admin/remove-expires-at', validateApiKey, async (req, res) => {
+  try {
+    if (!mongoManager.isConnected) {
+      return res.status(503).json({ 
+        error: 'MongoDB not connected',
+        message: 'Database connection is not available'
+      });
+    }
+
+    const collection = mongoManager.getCollection('generated_emails');
+    
+    // Remove expiresAt field from all documents
+    const result = await collection.updateMany(
+      {}, // Empty filter to match all documents
+      { $unset: { expiresAt: "" } } // Remove expiresAt field
+    );
+    
+    // Also try to drop the TTL index if it exists
+    let indexDropped = false;
+    try {
+      await collection.dropIndex({ "expiresAt": 1 });
+      indexDropped = true;
+    } catch (error) {
+      // Index might not exist, which is fine
+    }
+    
+    res.json({
+      success: true,
+      message: 'Successfully removed expiresAt field from all documents',
+      documentsModified: result.modifiedCount,
+      indexDropped: indexDropped,
+      timestamp: new Date().toISOString()
+    });
+    
+    logger.info(`✅ Removed expiresAt field from ${result.modifiedCount} documents`);
+    
+  } catch (error) {
+    logger.error(`Error removing expiresAt field: ${error.message}`);
+    res.status(500).json({
+      error: 'Failed to remove expiresAt field',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // 404 handler for undefined routes
 app.use('*', (req, res) => {
   logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`);
