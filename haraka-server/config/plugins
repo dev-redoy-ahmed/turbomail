@@ -1,0 +1,11 @@
+# Custom plugin to forward email to your Node.js API
+forward_to_api
+
+# Required plugin to allow email for your domain
+rcpt_to.in_host_list
+
+# Optional plugin: verifies MAIL FROM domain has DNS A/MX
+mail_from.is_resolvable
+
+# Optional plugin: forward accepted mail (not needed if you're not re-sending email)
+#queue/smtp_forward

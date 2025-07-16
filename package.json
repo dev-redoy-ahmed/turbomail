@@ -1,0 +1,42 @@
+{
+  "name": "turbomail",
+  "version": "1.0.0",
+  "description": "A complete temporary email service with admin panel and REST API",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "cd mail-api && npm install && cd ../admin && npm install && cd ../haraka-server && npm install",
+    "start:api": "cd mail-api && npm start",
+    "start:admin": "cd admin && npm start",
+    "start:haraka": "cd haraka-server && npm start",
+    "dev": "concurrently \"npm run start:api\" \"npm run start:admin\" \"npm run start:haraka\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "temporary-email",
+    "disposable-email",
+    "email-service",
+    "smtp",
+    "haraka",
+    "nodejs",
+    "express",
+    "redis",
+    "admin-panel"
+  ],
+  "author": "TurboMail Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dev-redoy-ahmed/turbomail.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dev-redoy-ahmed/turbomail/issues"
+  },
+  "homepage": "https://github.com/dev-redoy-ahmed/turbomail#readme",
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}

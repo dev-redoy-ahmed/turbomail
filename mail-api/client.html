@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>TurboMail Inbox</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    input {
+      padding: 8px;
+      width: 300px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+
+    ul {
+      margin-top: 20px;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    li {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>📥 TurboMail Inbox (Live)</h1>
+  <input id="emailInput" placeholder="Enter your temp email (e.g. test@oplex.online)" />
+  <button onclick="subscribe()">Subscribe</button>
+
+  <ul id="messages"></ul>
+
+  <script>
+    const socket = io('http://165.22.109.153:3001'); // ✅ Your backend with Socket.IO
+    const messagesList = document.getElementById('messages');
+
+    function subscribe() {
+      const email = document.getElementById('emailInput').value.trim().toLowerCase();
+      if (!email) return alert("Please enter a valid email.");
+      socket.emit('subscribe', email);
+      messagesList.innerHTML = '';
+      alert("📡 Subscribed to: " + email);
+      // Fetch existing inbox from REST endpoint
+      fetch(`http://165.22.109.153:3001/inbox/${email}`)
+        .then(res => res.json())
+        .then(data => {
+          data.reverse().forEach(msg => addMessage(msg));
+        })
+        .catch(err => console.error('❌ Failed to load inbox:', err));
+    }
+
+    function addMessage(msg) {
+      const item = document.createElement('li');
+      item.innerHTML = `<strong>${msg.subject}</strong><br>${msg.from}<br>${msg.text}`;
+      messagesList.prepend(item);
+    }
+
+    socket.on('new_mail', msg => {
+      addMessage(msg);
+    });
+  </script>
+</body>
+
+</html>
