@@ -34,7 +34,7 @@ A complete temporary email service built with Node.js, featuring a powerful admi
 temp-mail/
 ├── admin/                  # Admin panel (Express.js)
 │   ├── server.js          # Main admin server
-│   ├── public/            # Static assets
+│   ├── assets/            # Static assets (CSS, JS)
 │   └── views/             # EJS templates
 ├── mail-api/              # REST API server
 │   ├── index.js           # Main API server

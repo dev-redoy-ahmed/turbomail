@@ -6,7 +6,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 
 const app = express();
-const PORT = 3005;
+const PORT = 3006;
 
 // Paths
 const HARAKA_HOST_LIST = path.join(__dirname, '../haraka-server/config/host_list');
@@ -15,7 +15,7 @@ const MAIL_API_PATH = path.join(__dirname, '../mail-api/index.js');
 // Middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'assets')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(session({
