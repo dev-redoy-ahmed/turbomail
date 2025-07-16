@@ -7,6 +7,7 @@ const { simpleParser } = require('mailparser');
 const { createClient } = require('redis');
 const path = require('path');
 const crypto = require('crypto');
+const config = require('../config');
 
 const app = express();
 const httpServer = createServer(app);
@@ -14,12 +15,12 @@ const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST', 'DELETE'] }
 });
 
-const PORT = 3001;
-const MASTER_API_KEY = 'tempmail-master-key-2024';
-const ALLOWED_DOMAINS = ['oplex.online', 'agrovia.store'];
+const PORT = config.API.PORT;
+const MASTER_API_KEY = config.API.MASTER_KEY;
+const ALLOWED_DOMAINS = config.API.ALLOWED_DOMAINS;
 
 const redisClient = createClient({
-  socket: { host: '127.0.0.1', port: 6379 }
+  socket: { host: config.REDIS.HOST, port: config.REDIS.PORT }
 });
 
 redisClient.on('error', err => console.error('❌ Redis error:', err));
@@ -107,7 +108,7 @@ app.delete('/delete/:email', async (req, res) => {
 });
 
 // ✅ Haraka: POST raw mail + broadcast to inbox
-app.post('/incoming/raw', express.raw({ type: '*/*', limit: '20mb' }), async (req, res) => {
+app.post('/incoming/raw', express.raw({ type: '*/*', limit: config.EMAIL.MAX_MESSAGE_SIZE }), async (req, res) => {
   const to = req.query.to?.toLowerCase();
   const raw = req.body;
   if (!to || !raw) return res.status(400).send('❌ Missing recipient or body');
@@ -129,7 +130,7 @@ app.post('/incoming/raw', express.raw({ type: '*/*', limit: '20mb' }), async (re
     };
 
     await redisClient.rPush(`inbox:${to}`, JSON.stringify(email));
-    await redisClient.expire(`inbox:${to}`, 3600);
+    await redisClient.expire(`inbox:${to}`, config.EMAIL.EXPIRY_TIME);
     io.to(to).emit('new_mail', email);
     console.log(`📥 Stored & emitted mail for ${to}`);
     res.sendStatus(200);

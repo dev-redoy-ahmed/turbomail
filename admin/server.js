@@ -4,9 +4,10 @@ const session = require('express-session');
 const fs = require('fs-extra');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const config = require('../config');
 
 const app = express();
-const PORT = 3006;
+const PORT = config.ADMIN.PORT;
 
 // Paths
 const HARAKA_HOST_LIST = path.join(__dirname, '../haraka-server/config/host_list');
@@ -42,7 +43,7 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   // Simple hardcoded admin credentials (change in production)
-  if (username === 'admin' && password === 'admin123') {
+  if (username === config.ADMIN.USERNAME && password === config.ADMIN.PASSWORD) {
     req.session.authenticated = true;
     res.redirect('/dashboard');
   } else {
@@ -208,29 +209,43 @@ app.post('/api-key/update', requireAuth, async (req, res) => {
 // Helper functions
 async function getApiKey() {
   try {
-    const content = await fs.readFile(MAIL_API_PATH, 'utf8');
-    const match = content.match(/const MASTER_API_KEY = ['"`](.*?)['"`]/);
-    if (match && match[1]) {
-      return match[1];
-    }
-    return 'tempmail-master-key-2024'; // Default fallback
+    // Read from config file first
+    const configPath = path.join(__dirname, '../config.js');
+    delete require.cache[require.resolve('../config')]; // Clear cache to get fresh config
+    const freshConfig = require('../config');
+    return freshConfig.API.MASTER_KEY;
   } catch (error) {
-    console.error('Error reading API key:', error);
-    return 'tempmail-master-key-2024'; // Default fallback
+    console.error('Error reading API key from config:', error);
+    return config.API.MASTER_KEY; // Fallback to initial config
   }
 }
 
 async function updateApiKey(newKey) {
   try {
-    let content = await fs.readFile(MAIL_API_PATH, 'utf8');
-    
     if (!newKey || !newKey.trim()) {
       throw new Error('API Key cannot be empty');
     }
     
-    content = content.replace(/const MASTER_API_KEY = ['"`].*?['"`]/, `const MASTER_API_KEY = '${newKey.trim()}'`);
+    // Update config.js file
+    const configPath = path.join(__dirname, '../config.js');
+    let content = await fs.readFile(configPath, 'utf8');
     
-    await fs.writeFile(MAIL_API_PATH, content);
+    // Replace the MASTER_KEY value in the config file
+    content = content.replace(
+      /MASTER_KEY:\s*['"`].*?['"`]/,
+      `MASTER_KEY: '${newKey.trim()}'`
+    );
+    
+    await fs.writeFile(configPath, content);
+    
+    // Also update the mail-api file for backward compatibility
+    let apiContent = await fs.readFile(MAIL_API_PATH, 'utf8');
+    apiContent = apiContent.replace(
+      /const MASTER_API_KEY = ['"`].*?['"`]/,
+      `const MASTER_API_KEY = config.API.MASTER_KEY`
+    );
+    await fs.writeFile(MAIL_API_PATH, apiContent);
+    
   } catch (error) {
     throw error;
   }
@@ -238,12 +253,28 @@ async function updateApiKey(newKey) {
 
 async function updateMailApiDomains(domains) {
   try {
-    let content = await fs.readFile(MAIL_API_PATH, 'utf8');
+    // Update config.js file
+    const configPath = path.join(__dirname, '../config.js');
+    let content = await fs.readFile(configPath, 'utf8');
+    
     const domainsString = domains.map(d => `'${d}'`).join(', ');
-    content = content.replace(/const ALLOWED_DOMAINS = \[.*?\]/s, `const ALLOWED_DOMAINS = [${domainsString}]`);
-    await fs.writeFile(MAIL_API_PATH, content);
+    content = content.replace(
+      /ALLOWED_DOMAINS:\s*\[.*?\]/s,
+      `ALLOWED_DOMAINS: [${domainsString}]`
+    );
+    
+    await fs.writeFile(configPath, content);
+    
+    // Also update the mail-api file for backward compatibility
+    let apiContent = await fs.readFile(MAIL_API_PATH, 'utf8');
+    apiContent = apiContent.replace(
+      /const ALLOWED_DOMAINS = \[.*?\]/s,
+      `const ALLOWED_DOMAINS = config.API.ALLOWED_DOMAINS`
+    );
+    await fs.writeFile(MAIL_API_PATH, apiContent);
+    
   } catch (error) {
-    console.error('Error updating mail-api domains:', error);
+    console.error('Error updating domains in config:', error);
   }
 }
 

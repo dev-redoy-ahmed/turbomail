@@ -109,7 +109,39 @@ pm2 monit
 4. **Set up reverse proxy** with Nginx (optional)
 5. **Regular backups** of Redis data
 
-### 🔧 Configuration Files
+### 📁 Configuration Files
+
+### Main Configuration (`config.js`)
+All TurboMail settings are centralized in the `config.js` file:
+
+```javascript
+module.exports = {
+  API: {
+    PORT: 3001,
+    MASTER_KEY: 'tempmail-master-key-2024',
+    ALLOWED_DOMAINS: ['oplex.online', 'agrovia.store']
+  },
+  ADMIN: {
+    PORT: 3006,
+    USERNAME: 'admin',
+    PASSWORD: 'admin123'
+  },
+  SMTP: {
+    PORT: 25,
+    HOST: '127.0.0.1'
+  },
+  REDIS: {
+    HOST: '127.0.0.1',
+    PORT: 6379
+  },
+  EMAIL: {
+    EXPIRY_TIME: 3600, // 1 hour
+    MAX_MESSAGE_SIZE: '20mb'
+  }
+};
+```
+
+**Important**: Update the `config.js` file with your VPS-specific settings before deployment.
 
 All configuration is done through direct file editing (no .env files needed):
 
