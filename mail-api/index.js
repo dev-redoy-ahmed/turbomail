@@ -74,12 +74,12 @@ app.get('/inbox/:email', async (req, res) => {
 });
 
 // ✅ 4. Delete message or entire inbox
-app.delete('/delete/:email/:index?', async (req, res) => {
+app.delete('/delete/:email/:index', async (req, res) => {
   const email = req.params.email.toLowerCase();
   const index = req.params.index;
   const key = `inbox:${email}`;
   try {
-    if (index) {
+    if (index && index !== 'all') {
       const msgs = await redisClient.lRange(key, 0, -1);
       if (!msgs[index]) return res.status(404).send('❌ Message not found');
       await redisClient.lRem(key, 1, msgs[index]);
@@ -87,6 +87,19 @@ app.delete('/delete/:email/:index?', async (req, res) => {
       await redisClient.del(key);
     }
     res.send('🗑️ Deleted');
+  } catch (err) {
+    console.error('❌ Delete error:', err.message);
+    res.status(500).send('Delete error');
+  }
+});
+
+// ✅ 4b. Delete entire inbox
+app.delete('/delete/:email', async (req, res) => {
+  const email = req.params.email.toLowerCase();
+  const key = `inbox:${email}`;
+  try {
+    await redisClient.del(key);
+    res.send('🗑️ Inbox deleted');
   } catch (err) {
     console.error('❌ Delete error:', err.message);
     res.status(500).send('Delete error');

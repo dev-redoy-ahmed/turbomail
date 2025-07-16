@@ -1,0 +1,56 @@
+{
+  "apps": [
+    {
+      "name": "turbomail-api",
+      "script": "mail-api/index.js",
+      "cwd": "./",
+      "instances": 1,
+      "exec_mode": "fork",
+      "watch": false,
+      "max_memory_restart": "500M",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_file": "./logs/api.log",
+      "out_file": "./logs/api-out.log",
+      "error_file": "./logs/api-error.log",
+      "merge_logs": true,
+      "time": true
+    },
+    {
+      "name": "turbomail-admin",
+      "script": "admin/server.js",
+      "cwd": "./",
+      "instances": 1,
+      "exec_mode": "fork",
+      "watch": false,
+      "max_memory_restart": "300M",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_file": "./logs/admin.log",
+      "out_file": "./logs/admin-out.log",
+      "error_file": "./logs/admin-error.log",
+      "merge_logs": true,
+      "time": true
+    },
+    {
+      "name": "turbomail-smtp",
+      "script": "npm",
+      "args": "start",
+      "cwd": "./haraka-server",
+      "instances": 1,
+      "exec_mode": "fork",
+      "watch": false,
+      "max_memory_restart": "400M",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_file": "./logs/smtp.log",
+      "out_file": "./logs/smtp-out.log",
+      "error_file": "./logs/smtp-error.log",
+      "merge_logs": true,
+      "time": true
+    }
+  ]
+}

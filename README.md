@@ -90,15 +90,17 @@ temp-mail/
 
 ## 🚀 Running the Application
 
-### Start all services:
+### Local Development
 
-1. **Start the Mail API** (Port 3000)
+Start all services locally:
+
+1. **Start the Mail API** (Port 3001)
    ```bash
    cd mail-api
    npm start
    ```
 
-2. **Start the Admin Panel** (Port 3005)
+2. **Start the Admin Panel** (Port 3006)
    ```bash
    cd admin
    npm start
@@ -112,11 +114,30 @@ temp-mail/
    ./start-haraka.sh
    ```
 
+### 🌐 VPS Deployment
+
+For VPS deployment, use the automated setup:
+
+```bash
+# Make startup script executable
+chmod +x start-vps.sh
+
+# Run the VPS startup script
+./start-vps.sh
+```
+
+**VPS Services will be available at:**
+- Mail API: `http://YOUR_VPS_IP:3001`
+- Admin Panel: `http://YOUR_VPS_IP:3006`
+- SMTP Server: `YOUR_VPS_IP:25`
+
+For detailed VPS setup instructions, see [VPS-DEPLOYMENT.md](VPS-DEPLOYMENT.md)
+
 ## 📖 API Documentation
 
 ### Base URL
 ```
-http://localhost:3000
+http://localhost:3001
 ```
 
 ### Authentication
@@ -149,7 +170,7 @@ DELETE /delete/:email/:index?
 
 ## 🔧 Admin Panel
 
-Access the admin panel at: `http://localhost:3005`
+Access the admin panel at: `http://localhost:3006`
 
 **Default Credentials:**
 - Username: `admin`
@@ -168,7 +189,7 @@ Create a `.env` file in each component directory:
 
 **mail-api/.env**
 ```env
-PORT=3000
+PORT=3001
 REDIS_HOST=localhost
 REDIS_PORT=6379
 API_KEY=tempmail-master-key-2024
@@ -176,7 +197,7 @@ API_KEY=tempmail-master-key-2024
 
 **admin/.env**
 ```env
-PORT=3005
+PORT=3006
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ```
@@ -221,7 +242,7 @@ pm2 start haraka-server/server.js --name "haraka-smtp"
 const axios = require('axios');
 
 // Generate random email
-const response = await axios.get('http://localhost:3000/generate', {
+const response = await axios.get('http://localhost:3001/generate', {
   headers: { 'X-API-Key': 'tempmail-master-key-2024' }
 });
 
@@ -232,11 +253,11 @@ console.log(response.data.email);
 ```bash
 # Generate random email
 curl -H "X-API-Key: tempmail-master-key-2024" \
-     http://localhost:3000/generate
+     http://localhost:3001/generate
 
 # View inbox
 curl -H "X-API-Key: tempmail-master-key-2024" \
-     http://localhost:3000/inbox/test@example.com
+     http://localhost:3001/inbox/test@example.com
 ```
 
 ## 🤝 Contributing
