@@ -139,6 +139,24 @@ body {
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid #00ff88;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
 }
 
 .btn:hover {
@@ -147,9 +165,21 @@ body {
   box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
 }
 
+.btn-primary {
+  background: linear-gradient(135deg, #00ccff 0%, #0099cc 100%);
+  border-color: #00ccff;
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0099cc 0%, #007799 100%);
+  box-shadow: 0 8px 20px rgba(0, 204, 255, 0.3);
+}
+
 .btn-danger {
   background: linear-gradient(135deg, #ff4444 0%, #cc3333 100%);
   color: white;
+  border-color: #ff4444;
 }
 
 .btn-danger:hover {
@@ -160,11 +190,16 @@ body {
 .btn-secondary {
   background: linear-gradient(135deg, #666 0%, #555 100%);
   color: white;
+  border-color: #666;
 }
 
 .btn-secondary:hover {
   background: linear-gradient(135deg, #555 0%, #444 100%);
   box-shadow: 0 8px 20px rgba(102, 102, 102, 0.3);
+}
+
+.btn i {
+  margin-right: 0.5rem;
 }
 
 /* Tables */
@@ -286,54 +321,144 @@ body {
 
 /* Sidebar */
 .sidebar {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-  width: 250px;
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+  width: 260px;
   min-height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
-  border-right: 2px solid #333;
-  padding: 2rem 0;
+  border-right: 3px solid #333;
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
 }
 
-.sidebar .logo {
+.sidebar-header {
   text-align: center;
-  padding: 0 1rem 2rem;
-  border-bottom: 1px solid #333;
-  margin-bottom: 2rem;
+  padding: 2rem 1rem;
+  border-bottom: 2px solid #333;
+  margin-bottom: 1rem;
+  background: rgba(0, 255, 136, 0.05);
 }
 
-.sidebar .logo h2 {
+.sidebar-header h2 {
   color: #00ff88;
-  font-size: 1.5rem;
-  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+  letter-spacing: 1px;
 }
 
-.sidebar ul {
-  list-style: none;
+.sidebar-header i {
+  margin-right: 0.5rem;
+  font-size: 1.4rem;
 }
 
-.sidebar ul li {
-  margin-bottom: 0.5rem;
+.sidebar-menu {
+  padding: 1rem 0;
 }
 
-.sidebar ul li a {
+.menu-item {
   display: block;
-  padding: 1rem 1.5rem;
+  padding: 1.2rem 1.5rem;
   color: #b0b0b0;
   text-decoration: none;
   transition: all 0.3s ease;
-  border-left: 3px solid transparent;
+  border-left: 4px solid transparent;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
 }
 
-.sidebar ul li a:hover, .sidebar ul li a.active {
-  background: rgba(0, 255, 136, 0.1);
+.menu-item i {
+  margin-right: 0.8rem;
+  width: 20px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.menu-item:hover {
+  background: linear-gradient(90deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 255, 136, 0.05) 100%);
   color: #00ff88;
   border-left-color: #00ff88;
+  transform: translateX(5px);
+  box-shadow: inset 0 0 20px rgba(0, 255, 136, 0.1);
+}
+
+.menu-item.active {
+  background: linear-gradient(90deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%);
+  color: #00ff88;
+  border-left-color: #00ff88;
+  font-weight: 600;
+  box-shadow: inset 0 0 25px rgba(0, 255, 136, 0.15);
+}
+
+.menu-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(0, 255, 136, 0.1) 0%, transparent 100%);
+  transition: width 0.3s ease;
+  z-index: -1;
+}
+
+.menu-item:hover::before {
+  width: 100%;
 }
 
 .main-content {
-  margin-left: 250px;
+  margin-left: 260px;
+  padding: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+}
+
+.header {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid #333;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  color: #00ff88;
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.header h1 i {
+  margin-right: 0.5rem;
+}
+
+.logout-btn {
+  background: linear-gradient(135deg, #ff4444 0%, #cc3333 100%);
+  color: white;
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 1px solid #ff4444;
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #cc3333 0%, #aa2222 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 68, 68, 0.3);
+}
+
+.logout-btn i {
+  margin-right: 0.5rem;
+}
+
+.content {
   padding: 2rem;
 }
 
@@ -354,14 +479,45 @@ body {
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    width: 280px;
+    z-index: 2000;
+  }
+  
+  .sidebar.mobile-open {
+    transform: translateX(0);
   }
   
   .main-content {
     margin-left: 0;
   }
   
+  .header {
+    padding: 1rem;
+    position: relative;
+  }
+  
+  .header::before {
+    content: '\f0c9';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #00ff88;
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 1001;
+  }
+  
+  .header h1 {
+    margin-left: 3rem;
+    font-size: 1.4rem;
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
   .nav ul {
@@ -369,8 +525,35 @@ body {
     gap: 0.5rem;
   }
   
-  .container {
+  .content {
     padding: 1rem;
+  }
+  
+  .card {
+    padding: 1.5rem;
+  }
+  
+  .logout-btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+  }
+  
+  .header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .stat-card .stat-number {
+    font-size: 2rem;
+  }
+  
+  .content {
+    padding: 0.5rem;
   }
 }
 

@@ -173,6 +173,12 @@ app.get('/api-management', requireAuth, async (req, res) => {
 app.post('/api-key/update', requireAuth, async (req, res) => {
   try {
     const { apiKey } = req.body;
+    
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error('API Key cannot be empty');
+    }
+    
+    // Update API key across all components
     await updateApiKey(apiKey);
     
     const masterApiKey = await getApiKey();
@@ -183,10 +189,22 @@ app.post('/api-key/update', requireAuth, async (req, res) => {
       { name: 'Delete Message/Inbox', endpoint: '/delete/:email/:index?', method: 'DELETE' }
     ];
     
+    const successMessage = `
+      🎉 Master API Key updated successfully!<br>
+      <strong>Updated Components:</strong><br>
+      ✅ config.js (Main Configuration)<br>
+      ✅ mail-api/index.js (Mail API)<br>
+      ✅ haraka-server/plugins/forward_to_api.js (Haraka Plugin)<br>
+      ✅ ecosystem.config.json (PM2 Configuration)<br>
+      <br>
+      <strong>New API Key:</strong> <code>${apiKey}</code><br>
+      <em>Note: Restart services to apply changes in production.</em>
+    `;
+    
     res.render('api-management', { 
-      masterApiKey: masterApiKey || 'tempmail-master-key-2024', 
+      masterApiKey: masterApiKey || apiKey, 
       apiEndpoints, 
-      success: 'Master API Key updated successfully', 
+      success: successMessage, 
       error: null 
     });
   } catch (error) {
@@ -201,7 +219,7 @@ app.post('/api-key/update', requireAuth, async (req, res) => {
       masterApiKey: masterApiKey || 'tempmail-master-key-2024', 
       apiEndpoints, 
       success: null, 
-      error: error.message 
+      error: `❌ Failed to update API key: ${error.message}` 
     });
   }
 });
@@ -226,7 +244,9 @@ async function updateApiKey(newKey) {
       throw new Error('API Key cannot be empty');
     }
     
-    // Update config.js file
+    console.log(`🔑 Updating API key to: ${newKey.trim()}`);
+    
+    // 1. Update config.js file (main configuration)
     const configPath = path.join(__dirname, '../config.js');
     let content = await fs.readFile(configPath, 'utf8');
     
@@ -237,16 +257,56 @@ async function updateApiKey(newKey) {
     );
     
     await fs.writeFile(configPath, content);
+    console.log('✅ Updated config.js');
     
-    // Also update the mail-api file for backward compatibility
+    // 2. Update mail-api file for backward compatibility
     let apiContent = await fs.readFile(MAIL_API_PATH, 'utf8');
     apiContent = apiContent.replace(
       /const MASTER_API_KEY = ['"`].*?['"`]/,
       `const MASTER_API_KEY = config.API.MASTER_KEY`
     );
     await fs.writeFile(MAIL_API_PATH, apiContent);
+    console.log('✅ Updated mail-api/index.js');
+    
+    // 3. Update Haraka plugin to ensure it uses the config
+    const harakaPluginPath = path.join(__dirname, '../haraka-server/plugins/forward_to_api.js');
+    let harakaContent = await fs.readFile(harakaPluginPath, 'utf8');
+    
+    // Ensure the plugin is using config.API.MASTER_KEY
+    if (!harakaContent.includes('config.API.MASTER_KEY')) {
+      harakaContent = harakaContent.replace(
+        /key=[^&}]+/g,
+        'key=${config.API.MASTER_KEY}'
+      );
+      await fs.writeFile(harakaPluginPath, harakaContent);
+      console.log('✅ Updated Haraka plugin');
+    }
+    
+    // 4. Update ecosystem.config.json environment variables
+    const ecosystemPath = path.join(__dirname, '../ecosystem.config.json');
+    try {
+      let ecosystemContent = await fs.readFile(ecosystemPath, 'utf8');
+      const ecosystem = JSON.parse(ecosystemContent);
+      
+      // Update environment variables for all apps
+      ecosystem.apps.forEach(app => {
+        if (!app.env) app.env = {};
+        app.env.API_MASTER_KEY = newKey.trim();
+      });
+      
+      await fs.writeFile(ecosystemPath, JSON.stringify(ecosystem, null, 2));
+      console.log('✅ Updated ecosystem.config.json');
+    } catch (error) {
+      console.log('⚠️ Could not update ecosystem.config.json:', error.message);
+    }
+    
+    // 5. Clear require cache to ensure fresh config is loaded
+    delete require.cache[require.resolve('../config')];
+    
+    console.log('🎉 API key updated successfully across all components!');
     
   } catch (error) {
+    console.error('❌ Error updating API key:', error);
     throw error;
   }
 }
