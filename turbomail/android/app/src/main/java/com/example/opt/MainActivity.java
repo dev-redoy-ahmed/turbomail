@@ -1,4 +1,4 @@
-package com.example.opt;
+package com.apppulse.gamingmaster;
 
 import io.flutter.embedding.android.FlutterActivity;
 

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/email_provider.dart';
+import '../utils/page_transitions.dart';
+import '../services/ads_service.dart';
+import 'email_detail_screen.dart';
 
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
@@ -10,30 +14,11 @@ class InboxScreen extends StatefulWidget {
   State<InboxScreen> createState() => _InboxScreenState();
 }
 
-class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin {
-  late AnimationController _slideController;
-  late Animation<Offset> _slideAnimation;
+class _InboxScreenState extends State<InboxScreen> {
 
   @override
   void initState() {
     super.initState();
-    
-    // Initialize slide animation
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 1.0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    // Start animation
-    _slideController.forward();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final emailProvider = context.read<EmailProvider>();
@@ -44,43 +29,35 @@ class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin
   }
 
   @override
-  void dispose() {
-    _slideController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1C2E),
-      body: SlideTransition(
-        position: _slideAnimation,
-        child: Column(
-          children: [
-            // Custom App Bar with current email info
-            _buildCustomAppBar(),
-            
-            // Main content
-            Expanded(
-              child: Consumer<EmailProvider>(
-                builder: (context, emailProvider, child) {
-                  if (emailProvider.currentEmail == null) {
-                    return _buildNoEmailState();
-                  }
+      body: Column(
+        children: [
+          // AppBar stays static at top
+          _buildCustomAppBar(),
 
-                  if (emailProvider.emails.isEmpty && !emailProvider.isLoading) {
-                    return _buildEmptyInboxState(emailProvider);
-                  }
+          // Main content without animation
+          Expanded(
+            child: Consumer<EmailProvider>(
+              builder: (context, emailProvider, child) {
+                if (emailProvider.currentEmail == null) {
+                  return _buildNoEmailState();
+                }
 
-                  return _buildEmailList(emailProvider);
-                },
-              ),
+                if (emailProvider.emails.isEmpty && !emailProvider.isLoading) {
+                  return _buildEmptyInboxState(emailProvider);
+                }
+
+                return _buildEmailList(emailProvider);
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildCustomAppBar() {
     return Container(
@@ -398,18 +375,87 @@ class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: emailProvider.emails.length,
+            itemCount: emailProvider.emails.length + 1, // +1 for native ad
             itemBuilder: (context, index) {
+              // Show native ad at the end
+              if (index == emailProvider.emails.length) {
+                return FutureBuilder<NativeAd?>(
+                  future: AdsService().loadNativeAd(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data != null) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        height: 300,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A2434),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF00D4AA).withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: AdWidget(ad: snapshot.data!),
+                        ),
+                      );
+                    } else {
+                      // Fallback placeholder
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A2434),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF00D4AA).withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.ads_click,
+                                color: Color(0xFF00D4AA),
+                                size: 32,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Native Ad Space',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                );
+              }
+              
               final email = emailProvider.emails[index];
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
+                  color: const Color(0xFF1A2434),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: const Color(0xFF00D4AA).withOpacity(0.2),
                     width: 1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -421,47 +467,124 @@ class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Header row with sender info and actions
                           Row(
                             children: [
+                              // Sender avatar
                               Container(
-                                width: 40,
-                                height: 40,
+                                width: 48,
+                                height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF00D4AA).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      const Color(0xFF00D4AA),
+                                      const Color(0xFF00D4AA).withOpacity(0.7),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: Color(0xFF00D4AA),
-                                  size: 20,
+                                child: Center(
+                                  child: Text(
+                                    email.from.isNotEmpty 
+                                        ? email.from[0].toUpperCase() 
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
+                              
+                              // Sender info and time
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      email.from,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            email.from,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        // Attachment indicator
+                                        if (email.attachments.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF00D4AA).withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.attach_file,
+                                                  color: Color(0xFF00D4AA),
+                                                  size: 12,
+                                                ),
+                                                const SizedBox(width: 2),
+                                                Text(
+                                                  '${email.attachments.length}',
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF00D4AA),
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      email.timeAgo,
-                                      style: const TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                      ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.access_time,
+                                          color: Colors.white54,
+                                          size: 12,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          email.timeAgo,
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          email.formattedDate,
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
+                              
+                              // Delete button
                               IconButton(
                                 onPressed: () => _showDeleteDialog(context, emailProvider, email, index),
                                 icon: const Icon(
@@ -472,7 +595,10 @@ class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin
                               ),
                             ],
                           ),
+                          
                           const SizedBox(height: 12),
+                          
+                          // Subject
                           Text(
                             email.subject.isNotEmpty ? email.subject : 'No Subject',
                             style: const TextStyle(
@@ -483,18 +609,104 @@ class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          
+                          // Message preview
                           if (email.text.isNotEmpty) ...[
                             const SizedBox(height: 8),
-                            Text(
-                              email.text,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F1C2E),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFF00D4AA).withOpacity(0.1),
+                                  width: 1,
+                                ),
                               ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
+                              child: Text(
+                                email.text,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
+                          
+                          // Bottom row with indicators
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              // HTML content indicator
+                              if (email.html.isNotEmpty) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00D4AA).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.code,
+                                        color: Color(0xFF00D4AA),
+                                        size: 12,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Rich Content',
+                                        style: TextStyle(
+                                          color: Color(0xFF00D4AA),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              
+                              const Spacer(),
+                              
+                              // Tap to view indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Tap to view',
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    SizedBox(width: 4),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      color: Colors.white54,
+                                      size: 10,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -509,113 +721,10 @@ class _InboxScreenState extends State<InboxScreen> with TickerProviderStateMixin
   }
 
   void _showEmailDetails(BuildContext context, email) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF1A2434),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.email,
-                    color: Color(0xFF00D4AA),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Email Details',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.white54,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildDetailRow('From', email.from),
-              _buildDetailRow('Subject', email.subject.isNotEmpty ? email.subject : 'No Subject'),
-              _buildDetailRow('Date', email.date),
-              const SizedBox(height: 16),
-              const Text(
-                'Message',
-                style: TextStyle(
-                  color: Color(0xFF00D4AA),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F1C2E),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF00D4AA).withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  email.text.isNotEmpty ? email.text : 'No message content',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                color: Color(0xFF00D4AA),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EmailDetailScreen(email: email),
       ),
     );
   }

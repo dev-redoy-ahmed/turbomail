@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import '../providers/email_provider.dart';
 import '../services/api_service.dart';
 import '../services/device_service.dart';
+import '../services/ads_service.dart';
+import '../utils/page_transitions.dart';
 import 'inbox_screen.dart';
 
 class EmailHistoryPage extends StatefulWidget {
-  const EmailHistoryPage({super.key});
+  final ScrollController? scrollController;
+  
+  const EmailHistoryPage({super.key, this.scrollController});
 
   @override
   State<EmailHistoryPage> createState() => _EmailHistoryPageState();
@@ -126,16 +130,24 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Email'),
-        content: Text('Are you sure you want to delete ${email.email}?'),
+        backgroundColor: const Color(0xFF1A2434),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Email', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Are you sure you want to delete ${email.email}?',
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -167,17 +179,23 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
   }
 
   Future<void> _switchToEmail(HistoryEmailModel email) async {
+    // Show interstitial ad before switching email
+    await AdsService().showInterstitialAd();
+    
     final emailProvider = Provider.of<EmailProvider>(context, listen: false);
     
     try {
-      // Set the current email in the provider and navigate to inbox
+      // Set the current email in the provider
       emailProvider.setCurrentEmail(email.email);
       
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => InboxScreen(),
-        ),
+      // Close the modal bottom sheet
+      Navigator.pop(context);
+      
+      // Navigate to inbox screen with slide transition
+      context.slideReplacePage(
+        InboxScreen(),
+        direction: SlideDirection.rightToLeft,
+        duration: const Duration(milliseconds: 400),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,162 +209,193 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0E27),
-      appBar: AppBar(
-        title: const Text(
-          'Email History',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+    return Column(
+      children: [
+        // Modal handle
+        Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.only(top: 12, bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
-        backgroundColor: const Color(0xFF1A1F3A),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _loadEmailHistory(refresh: true),
-          ),
-        ],
-      ),
-      body: _isLoading && _emails.isEmpty
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6C5CE7)),
+        
+        // Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00D4AA),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.history,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
-            )
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Error loading history',
-                        style: TextStyle(
-                          color: Colors.red[300],
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _error!,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: () => _loadEmailHistory(refresh: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6C5CE7),
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Retry'),
-                      ),
-                    ],
+              const SizedBox(width: 12),
+              const Text(
+                'Email History',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF00D4AA)),
+                onPressed: () => _loadEmailHistory(refresh: true),
+              ),
+            ],
+          ),
+        ),
+        
+        // Content
+        Expanded(
+          child: _isLoading && _emails.isEmpty
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00D4AA)),
                   ),
                 )
-              : _emails.isEmpty
+              : _error != null
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.history,
+                            Icons.error_outline,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: Colors.red[300],
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No email history',
+                            'Error loading history',
                             style: TextStyle(
-                              color: Colors.grey[400],
+                              color: Colors.red[300],
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Generate some emails to see them here',
-                            style: TextStyle(
-                              color: Colors.grey[600],
+                            _error!,
+                            style: const TextStyle(
+                              color: Colors.white70,
                               fontSize: 14,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () => _loadEmailHistory(refresh: true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00D4AA),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Retry'),
                           ),
                         ],
                       ),
                     )
-                  : Column(
-                      children: [
-                        // Device info header
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          margin: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A1F3A),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(0xFF6C5CE7).withOpacity(0.3),
-                            ),
-                          ),
+                  : _emails.isEmpty
+                      ? Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Device Information',
+                              Icon(
+                                Icons.history,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No email history',
                                 style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
+                                  color: Colors.grey[400],
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Device ID: ${_deviceId.substring(0, 8)}...',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                              Text(
-                                'Total Emails: ${_emails.length}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
+                                'Generate some emails to see them here',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        
-                        // Email list
-                        Expanded(
-                          child: NotificationListener<ScrollNotification>(
-                            onNotification: (ScrollNotification scrollInfo) {
-                              if (scrollInfo.metrics.pixels ==
-                                      scrollInfo.metrics.maxScrollExtent &&
-                                  _hasMorePages &&
-                                  !_isLoading) {
-                                _loadMoreEmails();
-                              }
-                              return false;
-                            },
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: _emails.length + (_hasMorePages ? 1 : 0),
+                        )
+                      : Column(
+                          children: [
+                            // Device info header
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A2434),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFF00D4AA).withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Device Information',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Device ID: ${_deviceId.isNotEmpty ? _deviceId.substring(0, 8) : 'Loading'}...',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                  Text(
+                                    'Total Emails: ${_emails.length}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Email list
+                            Expanded(
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: (ScrollNotification scrollInfo) {
+                                  if (scrollInfo.metrics.pixels ==
+                                          scrollInfo.metrics.maxScrollExtent &&
+                                      _hasMorePages &&
+                                      !_isLoading) {
+                                    _loadMoreEmails();
+                                  }
+                                  return false;
+                                },
+                                child: ListView.builder(
+                                  controller: widget.scrollController,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  itemCount: _emails.length + (_hasMorePages ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (index == _emails.length) {
                                   return const Padding(
@@ -354,7 +403,7 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
                                     child: Center(
                                       child: CircularProgressIndicator(
                                         valueColor: AlwaysStoppedAnimation<Color>(
-                                          Color(0xFF6C5CE7),
+                                          Color(0xFF00D4AA),
                                         ),
                                       ),
                                     ),
@@ -369,6 +418,8 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
                         ),
                       ],
                     ),
+         ),
+       ],
     );
   }
 
@@ -376,12 +427,12 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1F3A),
+        color: const Color(0xFF1A2434),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: email.isStarred
               ? const Color(0xFFFFD700).withOpacity(0.5)
-              : const Color(0xFF6C5CE7).withOpacity(0.3),
+              : const Color(0xFF00D4AA).withOpacity(0.2),
         ),
       ),
       child: ListTile(
@@ -389,7 +440,7 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
         leading: CircleAvatar(
           backgroundColor: email.type == 'custom'
               ? const Color(0xFF00D4AA)
-              : const Color(0xFF6C5CE7),
+              : const Color(0xFF00D49B),
           child: Icon(
             email.type == 'custom' ? Icons.person : Icons.shuffle,
             color: Colors.white,
@@ -426,7 +477,7 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
               style: TextStyle(
                 color: email.type == 'custom'
                     ? const Color(0xFF00D4AA)
-                    : const Color(0xFF6C5CE7),
+                    : const Color(0xFF00D49B),
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -450,7 +501,7 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
         ),
         trailing: PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.white70),
-          color: const Color(0xFF1A1F3A),
+          color: const Color(0xFF1A2434),
           onSelected: (value) {
             switch (value) {
               case 'switch':

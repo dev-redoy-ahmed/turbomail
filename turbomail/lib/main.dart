@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/email_provider.dart';
+import 'providers/premium_provider.dart';
+import 'services/ads_service.dart';
 import 'screens/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Ads Service
+  await AdsService().initialize();
   
   // Create EmailProvider instance
   final emailProvider = EmailProvider();
   
   // Auto-generate an email when the app starts
   await emailProvider.generateRandomEmail();
+  
+  // Show app open ad after initialization
+  await AdsService().showAppOpenAd();
   
   runApp(TurboMailApp(emailProvider: emailProvider));
 }
@@ -22,8 +30,11 @@ class TurboMailApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: emailProvider,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: emailProvider),
+        ChangeNotifierProvider(create: (_) => PremiumProvider()),
+      ],
       child: MaterialApp(
         title: 'TurboMail',
         debugShowCheckedModeBanner: false,

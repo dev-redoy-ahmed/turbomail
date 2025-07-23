@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/page_transitions.dart';
 
 class CustomDrawer extends StatefulWidget {
   final bool isOpen;

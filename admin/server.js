@@ -4,7 +4,12 @@ const session = require('express-session');
 const fs = require('fs-extra');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
+require('dotenv').config();
 const config = require('../config');
+
+// Import models
+const AdsConfig = require('./models/AdsConfig');
 
 const app = express();
 const PORT = config.ADMIN.PORT;
@@ -25,6 +30,19 @@ app.use(session({
   saveUninitialized: false,
   cookie: { secure: false }
 }));
+
+// MongoDB Connection
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/turbomail';
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('✅ Connected to MongoDB');
+})
+.catch((error) => {
+  console.error('❌ MongoDB connection error:', error);
+});
 
 // Simple auth middleware
 const requireAuth = (req, res, next) => {
@@ -220,6 +238,131 @@ app.post('/api-key/update', requireAuth, async (req, res) => {
       apiEndpoints, 
       success: null, 
       error: `❌ Failed to update API key: ${error.message}` 
+    });
+  }
+});
+
+// Ads Management Routes
+app.get('/ads-management', requireAuth, async (req, res) => {
+  try {
+    const adsConfig = await AdsConfig.getAllAdsConfig();
+    const mongoUri = process.env.MONGO_URI || '';
+    const adsEnabled = true; // You can make this configurable
+    
+    res.render('ads-management', { 
+      adsConfig, 
+      mongoUri,
+      adsEnabled,
+      success: null, 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error loading ads management:', error);
+    res.render('ads-management', { 
+      adsConfig: {}, 
+      mongoUri: '',
+      adsEnabled: false,
+      success: null, 
+      error: `Failed to load ads configuration: ${error.message}` 
+    });
+  }
+});
+
+app.post('/ads-management/update', requireAuth, async (req, res) => {
+  try {
+    const { adType, adId, description, isActive, platform } = req.body;
+    
+    if (!adType || !adId || !adId.trim()) {
+      throw new Error('Ad type and Ad ID are required');
+    }
+    
+    // Validate ad ID format (basic AdMob format check)
+    const adIdPattern = /^ca-app-pub-\d{16}\/\d{10}$/;
+    if (!adIdPattern.test(adId.trim())) {
+      throw new Error('Invalid Ad ID format. Please use format: ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx');
+    }
+    
+    const updateOptions = {
+      description: description || '',
+      isActive: isActive === 'true',
+      platform: platform || 'android'
+    };
+    
+    await AdsConfig.updateAdConfig(adType, adId.trim(), updateOptions);
+    
+    const adsConfig = await AdsConfig.getAllAdsConfig();
+    const mongoUri = process.env.MONGO_URI || '';
+    const adsEnabled = true;
+    
+    res.render('ads-management', { 
+      adsConfig, 
+      mongoUri,
+      adsEnabled,
+      success: `✅ ${adType.charAt(0).toUpperCase() + adType.slice(1)} ad updated successfully!`, 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error updating ad config:', error);
+    const adsConfig = await AdsConfig.getAllAdsConfig();
+    const mongoUri = process.env.MONGO_URI || '';
+    const adsEnabled = true;
+    
+    res.render('ads-management', { 
+      adsConfig, 
+      mongoUri,
+      adsEnabled,
+      success: null, 
+      error: `❌ Failed to update ad: ${error.message}` 
+    });
+  }
+});
+
+app.post('/ads-management/settings', requireAuth, async (req, res) => {
+  try {
+    const { mongoUri, adsEnabled } = req.body;
+    
+    // Update environment variables or config file
+    if (mongoUri && mongoUri.trim()) {
+      // You can save this to a config file or environment
+      process.env.MONGO_URI = mongoUri.trim();
+    }
+    
+    const adsConfig = await AdsConfig.getAllAdsConfig();
+    
+    res.render('ads-management', { 
+      adsConfig, 
+      mongoUri: mongoUri || process.env.MONGO_URI || '',
+      adsEnabled: adsEnabled === 'true',
+      success: '✅ Settings updated successfully!', 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    const adsConfig = await AdsConfig.getAllAdsConfig();
+    
+    res.render('ads-management', { 
+      adsConfig, 
+      mongoUri: process.env.MONGO_URI || '',
+      adsEnabled: false,
+      success: null, 
+      error: `❌ Failed to update settings: ${error.message}` 
+    });
+  }
+});
+
+// API endpoint to get ads config for Flutter app
+app.get('/api/ads-config', async (req, res) => {
+  try {
+    const adsConfig = await AdsConfig.getAllAdsConfig();
+    res.json({
+      success: true,
+      data: adsConfig
+    });
+  } catch (error) {
+    console.error('Error getting ads config:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

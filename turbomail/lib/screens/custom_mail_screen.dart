@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/email_provider.dart';
+import '../services/ads_service.dart';
+import '../utils/page_transitions.dart';
 
-class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+class CustomMailScreen extends StatefulWidget {
+  const CustomMailScreen({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  State<CustomMailScreen> createState() => _CustomMailScreenState();
 }
 
-class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMixin {
+class _CustomMailScreenState extends State<CustomMailScreen> with TickerProviderStateMixin {
   final TextEditingController _usernameController = TextEditingController();
   String _selectedDomain = 'oplex.online';
   bool _isCreating = false;
@@ -21,17 +23,17 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.2),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOut));
-    
+
     _animationController.forward();
   }
 
@@ -45,42 +47,42 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
+      backgroundColor: const Color(0xFF0F1C2E),
       body: SafeArea(
         child: Column(
           children: [
             // Custom App Bar
             _buildCustomAppBar(),
-            
+
             // Main Content
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-                      
+
                       // Hero Section
                       _buildHeroSection(),
-                      
+
                       const SizedBox(height: 30),
-                      
+
                       // Custom Email Creation Form
                       _buildCustomEmailForm(),
-                      
+
                       const SizedBox(height: 30),
-                      
-                      // Current Email Display
+
+                      // Current Email Display (if exists)
                       _buildCurrentEmailDisplay(),
-                      
+
                       const SizedBox(height: 30),
-                      
-                      // Placeholder Container
-                      _buildPlaceholderContainer(),
-                      
-                      const SizedBox(height: 30),
+
+                      // Ads Container
+                      _buildAdsContainer(),
+
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -94,21 +96,14 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
 
   Widget _buildCustomAppBar() {
     return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A2332),
-            const Color(0xFF0F1A2A),
-          ],
-        ),
+      height: 70,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A2434),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black26,
+            blurRadius: 8,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -119,11 +114,11 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: const Color(0xFF00D4AA).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: const Color(0xFF00D4AA).withOpacity(0.3),
                     width: 1,
@@ -132,7 +127,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                 child: const Icon(
                   Icons.arrow_back_ios_new,
                   color: Color(0xFF00D4AA),
-                  size: 18,
+                  size: 16,
                 ),
               ),
             ),
@@ -142,13 +137,12 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
                 ),
               ),
             ),
-            const SizedBox(width: 40),
+            const SizedBox(width: 36),
           ],
         ),
       ),
@@ -162,7 +156,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
         position: _slideAnimation,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -172,7 +166,7 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                 const Color(0xFF00A693).withOpacity(0.05),
               ],
             ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: const Color(0xFF00D4AA).withOpacity(0.2),
               width: 1,
@@ -181,45 +175,43 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
           child: Column(
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF00D4AA), Color(0xFF00A693)],
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF00D4AA).withOpacity(0.3),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.email_outlined,
+                  Icons.alternate_email,
                   color: Colors.white,
-                  size: 28,
+                  size: 24,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               const Text(
-                'Create Your Custom Email',
+                'Create Custom Email',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
-                'Choose your own username and domain\nfor a personalized temporary email',
+                'Choose your own username and domain',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 14,
-                  height: 1.5,
                 ),
               ),
             ],
@@ -232,54 +224,36 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
   Widget _buildCustomEmailForm() {
     return Consumer<EmailProvider>(
       builder: (context, emailProvider, child) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+        return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A2332),
-            borderRadius: BorderRadius.circular(20),
+            color: const Color(0xFF1A2434),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF2A3441),
+              color: const Color(0xFF00D4AA).withOpacity(0.1),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Email Configuration',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              
               // Username Input
               const Text(
                 'Username',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
+                  color: Colors.white,
+                  fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F1A2A),
+                  color: const Color(0xFF0F1C2E),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF2A3441),
+                    color: const Color(0xFF00D4AA).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
@@ -288,25 +262,25 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Enter username',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.all(16),
                     prefixIcon: Icon(
                       Icons.person_outline,
-                      color: const Color(0xFF00D4AA).withOpacity(0.7),
+                      color: const Color(0xFF00D4AA),
                     ),
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 20),
-              
+
+              const SizedBox(height: 16),
+
               // Domain Selection
               const Text(
                 'Domain',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
+                  color: Colors.white,
+                  fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -315,30 +289,30 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F1A2A),
+                  color: const Color(0xFF0F1C2E),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF2A3441),
+                    color: const Color(0xFF00D4AA).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedDomain,
-                    dropdownColor: const Color(0xFF1A2332),
+                    dropdownColor: const Color(0xFF1A2434),
                     style: const TextStyle(color: Colors.white),
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.keyboard_arrow_down,
-                      color: const Color(0xFF00D4AA).withOpacity(0.7),
+                      color: Color(0xFF00D4AA),
                     ),
                     items: emailProvider.availableDomains.map((domain) {
                       return DropdownMenuItem(
                         value: domain,
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.language,
-                              color: const Color(0xFF00D4AA).withOpacity(0.7),
+                              color: Color(0xFF00D4AA),
                               size: 18,
                             ),
                             const SizedBox(width: 12),
@@ -355,13 +329,13 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 24),
-              
+
+              const SizedBox(height: 20),
+
               // Create Button
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 48,
                 child: ElevatedButton(
                   onPressed: _isCreating ? null : _createCustomEmail,
                   style: ElevatedButton.styleFrom(
@@ -410,19 +384,12 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
         if (emailProvider.currentEmail == null) {
           return const SizedBox.shrink();
         }
-        
+
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF1A2332),
-                const Color(0xFF0F1A2A),
-              ],
-            ),
+            color: const Color(0xFF1A2434),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: const Color(0xFF00D4AA).withOpacity(0.3),
@@ -434,16 +401,16 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: const Color(0xFF00D4AA).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.check_circle_outline,
                       color: Color(0xFF00D4AA),
-                      size: 20,
+                      size: 18,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -457,15 +424,15 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F1A2A),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF0F1C2E),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFF2A3441),
+                    color: const Color(0xFF00D4AA).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
@@ -473,52 +440,12 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
                   emailProvider.currentEmail!,
                   style: const TextStyle(
                     color: Color(0xFF00D4AA),
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500,
                     fontFamily: 'monospace',
                   ),
                   textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => emailProvider.generateRandomEmail(),
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('New Random'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2A3441),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showDeleteEmailDialog(emailProvider),
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('Delete'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.withOpacity(0.1),
-                        foregroundColor: Colors.red,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: Colors.red.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -527,22 +454,22 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildPlaceholderContainer() {
+  Widget _buildAdsContainer() {
     return Container(
       width: double.infinity,
-      height: 275,
+      height: 280,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1A2332).withOpacity(0.5),
-            const Color(0xFF0F1A2A).withOpacity(0.3),
+            const Color(0xFF1A2434),
+            const Color(0xFF0F1C2E),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF2A3441).withOpacity(0.5),
+          color: const Color(0xFF00D4AA).withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -550,37 +477,89 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: const Color(0xFF2A3441).withOpacity(0.3),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: const Color(0xFF00D4AA).withOpacity(0.2),
-                width: 1,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF00D4AA), Color(0xFF00A693)],
               ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00D4AA).withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: Icon(
-              Icons.widgets_outlined,
-              color: const Color(0xFF00D4AA).withOpacity(0.4),
-              size: 32,
+            child: const Icon(
+              Icons.star,
+              color: Colors.white,
+              size: 28,
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            'Coming Soon',
+          const SizedBox(height: 16),
+          const Text(
+            'Upgrade to Premium',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'More features will be available here',
+            'Get unlimited custom emails\nand advanced features',
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withOpacity(0.7),
               fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF00D4AA), Color(0xFF00A693)],
+              ),
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00D4AA).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Text(
+              'Get Premium',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF00D4AA).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF00D4AA).withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: const Text(
+              'Ad Space',
+              style: TextStyle(
+                color: Color(0xFF00D4AA),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -599,12 +578,15 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
     });
 
     try {
+      // Show reward ad before creating custom email
+      await AdsService().showRewardedAd();
+      
       final emailProvider = Provider.of<EmailProvider>(context, listen: false);
       await emailProvider.generateManualEmail(
         _usernameController.text.trim().toLowerCase(),
         _selectedDomain,
       );
-      
+
       _showSuccessSnackBar('Custom email created successfully!');
       _usernameController.clear();
     } catch (e) {
@@ -638,42 +620,5 @@ class _SettingsPageState extends State<SettingsPage> with TickerProviderStateMix
     );
   }
 
-  void _showDeleteEmailDialog(EmailProvider emailProvider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A2332),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Delete Email',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'Are you sure you want to delete the current email?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white54),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              emailProvider.clearCurrentEmail();
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
+
 }
