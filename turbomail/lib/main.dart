@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/email_provider.dart';
 import 'providers/premium_provider.dart';
 import 'services/ads_service.dart';
+import 'services/app_update_service.dart';
 import 'screens/dashboard_screen.dart';
 
 void main() async {
@@ -23,16 +24,30 @@ void main() async {
   runApp(TurboMailApp(emailProvider: emailProvider));
 }
 
-class TurboMailApp extends StatelessWidget {
+class TurboMailApp extends StatefulWidget {
   final EmailProvider emailProvider;
   
   const TurboMailApp({super.key, required this.emailProvider});
 
   @override
+  State<TurboMailApp> createState() => _TurboMailAppState();
+}
+
+class _TurboMailAppState extends State<TurboMailApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize app update service after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppUpdateService.initialize(context);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: emailProvider),
+        ChangeNotifierProvider.value(value: widget.emailProvider),
         ChangeNotifierProvider(create: (_) => PremiumProvider()),
       ],
       child: MaterialApp(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -10,21 +11,16 @@ class AdsService {
 
   final Dio _dio = Dio();
   
-  // Default test ad IDs (will be replaced by admin panel config)
-  Map<String, String> _adIds = {
-    'banner': 'ca-app-pub-3940256099942544/6300978111', // Test banner
-    'interstitial': 'ca-app-pub-3940256099942544/1033173712', // Test interstitial
-    'native': 'ca-app-pub-3940256099942544/2247696110', // Test native
-    'appopen': 'ca-app-pub-3940256099942544/3419835294', // Test app open
-    'reward': 'ca-app-pub-3940256099942544/5224354917', // Test reward
-  };
+  // Ad IDs from database only (no test IDs)
+  Map<String, String> _adIds = {};
   
   Map<String, bool> _adStatus = {
-    'banner': true,
-    'interstitial': true,
-    'native': true,
-    'appopen': true,
-    'reward': true,
+    'banner': false,
+    'interstitial': false,
+    'native': false,
+    'appOpen': false,
+    'rewarded': false,
+    'rewardedInterstitial': false,
   };
 
   // Ad instances
@@ -33,6 +29,7 @@ class AdsService {
   NativeAd? _nativeAd;
   AppOpenAd? _appOpenAd;
   RewardedAd? _rewardedAd;
+  RewardedInterstitialAd? _rewardedInterstitialAd;
 
   // Loading states
   bool _isBannerAdLoaded = false;
@@ -40,6 +37,7 @@ class AdsService {
   bool _isNativeAdLoaded = false;
   bool _isAppOpenAdLoaded = false;
   bool _isRewardedAdLoaded = false;
+  bool _isRewardedInterstitialAdLoaded = false;
 
   // Admin panel API URL
   String get _adminApiUrl => 'http://localhost:3001/api/ads-config'; // Change this to your admin panel URL
@@ -56,8 +54,12 @@ class AdsService {
       // Fetch ads config from admin panel
       await _fetchAdsConfig();
       
-      // Load ads
-      await _loadAllAds();
+      // Load ads only if we have valid configurations
+      if (_adIds.isNotEmpty) {
+        await _loadAllAds();
+      } else {
+        print('⚠️ No ad configurations found. Ads will not be loaded.');
+      }
       
       print('✅ Ads Service initialized successfully');
     } catch (error) {
@@ -75,12 +77,18 @@ class AdsService {
       if (response.statusCode == 200 && response.data['success']) {
         final adsConfig = response.data['data'] as Map<String, dynamic>;
         
+        // Clear existing configurations
+        _adIds.clear();
+        
         // Update ad IDs and status from admin panel
         adsConfig.forEach((adType, config) {
-          if (config != null && config['id'] != null) {
-            _adIds[adType] = config['id'];
-            _adStatus[adType] = config['isActive'] ?? true;
-            print('✅ Updated $adType: ${config['id']} (${config['isActive'] ? 'Active' : 'Inactive'})');
+          if (config != null && config['adId'] != null && config['adId'].toString().isNotEmpty) {
+            _adIds[adType] = config['adId'];
+            _adStatus[adType] = config['isActive'] ?? false;
+            print('✅ Updated $adType: ${config['adId']} (${config['isActive'] ? 'Active' : 'Inactive'})');
+          } else {
+            _adStatus[adType] = false;
+            print('⚠️ No valid ad ID for $adType');
           }
         });
         
@@ -117,14 +125,21 @@ class AdsService {
       if (adsConfigString != null) {
         final adsConfig = jsonDecode(adsConfigString) as Map<String, dynamic>;
         
+        // Clear existing configurations
+        _adIds.clear();
+        
         adsConfig.forEach((adType, config) {
-          if (config != null && config['id'] != null) {
-            _adIds[adType] = config['id'];
-            _adStatus[adType] = config['isActive'] ?? true;
+          if (config != null && config['adId'] != null && config['adId'].toString().isNotEmpty) {
+            _adIds[adType] = config['adId'];
+            _adStatus[adType] = config['isActive'] ?? false;
+          } else {
+            _adStatus[adType] = false;
           }
         });
         
         print('✅ Ads config loaded from local storage');
+      } else {
+        print('⚠️ No ads config found in local storage');
       }
     } catch (error) {
       print('❌ Error loading ads config locally: $error');
@@ -134,17 +149,21 @@ class AdsService {
   // Load all ads
   Future<void> _loadAllAds() async {
     await Future.wait([
-      _loadBannerAd(),
-      _loadInterstitialAd(),
-      _loadNativeAd(),
-      _loadAppOpenAd(),
-      _loadRewardedAd(),
+      loadBannerAd(),
+      loadInterstitialAd(),
+      loadNativeAd(),
+      loadAppOpenAd(),
+      loadRewardedAd(),
+      loadRewardedInterstitialAd(),
     ]);
   }
 
-  // Banner Ad Methods
-  Future<void> _loadBannerAd() async {
-    if (!_adStatus['banner']!) return;
+  // Banner Ad Methods (PUBLIC)
+  Future<BannerAd?> loadBannerAd() async {
+    if (!_adStatus['banner']! || !_adIds.containsKey('banner')) {
+      print('⚠️ Banner ad not enabled or no ad ID configured');
+      return null;
+    }
     
     try {
       _bannerAd = BannerAd(
@@ -165,16 +184,21 @@ class AdsService {
       );
       
       await _bannerAd!.load();
+      return _isBannerAdLoaded ? _bannerAd : null;
     } catch (error) {
       print('❌ Error loading banner ad: $error');
+      return null;
     }
   }
 
   BannerAd? get bannerAd => _isBannerAdLoaded ? _bannerAd : null;
 
   // Interstitial Ad Methods
-  Future<void> _loadInterstitialAd() async {
-    if (!_adStatus['interstitial']!) return;
+  Future<void> loadInterstitialAd() async {
+    if (!_adStatus['interstitial']! || !_adIds.containsKey('interstitial')) {
+      print('⚠️ Interstitial ad not enabled or no ad ID configured');
+      return;
+    }
     
     try {
       await InterstitialAd.load(
@@ -190,13 +214,13 @@ class AdsService {
               onAdDismissedFullScreenContent: (ad) {
                 ad.dispose();
                 _isInterstitialAdLoaded = false;
-                _loadInterstitialAd(); // Load next ad
+                loadInterstitialAd(); // Load next ad
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
                 print('❌ Interstitial ad failed to show: $error');
                 ad.dispose();
                 _isInterstitialAdLoaded = false;
-                _loadInterstitialAd(); // Load next ad
+                loadInterstitialAd(); // Load next ad
               },
             );
           },
@@ -216,13 +240,16 @@ class AdsService {
       await _interstitialAd!.show();
     } else {
       print('⚠️ Interstitial ad not ready');
-      await _loadInterstitialAd(); // Try to load if not ready
+      await loadInterstitialAd(); // Try to load if not ready
     }
   }
 
-  // Native Ad Methods
-  Future<void> _loadNativeAd() async {
-    if (!_adStatus['native']!) return;
+  // Native Ad Methods (PUBLIC)
+  Future<NativeAd?> loadNativeAd() async {
+    if (!_adStatus['native']! || !_adIds.containsKey('native')) {
+      print('⚠️ Native ad not enabled or no ad ID configured');
+      return null;
+    }
     
     try {
       _nativeAd = NativeAd(
@@ -268,20 +295,25 @@ class AdsService {
       );
       
       await _nativeAd!.load();
+      return _isNativeAdLoaded ? _nativeAd : null;
     } catch (error) {
       print('❌ Error loading native ad: $error');
+      return null;
     }
   }
 
   NativeAd? get nativeAd => _isNativeAdLoaded ? _nativeAd : null;
 
   // App Open Ad Methods
-  Future<void> _loadAppOpenAd() async {
-    if (!_adStatus['appopen']!) return;
+  Future<void> loadAppOpenAd() async {
+    if (!_adStatus['appOpen']! || !_adIds.containsKey('appOpen')) {
+      print('⚠️ App open ad not enabled or no ad ID configured');
+      return;
+    }
     
     try {
       await AppOpenAd.load(
-        adUnitId: _adIds['appopen']!,
+        adUnitId: _adIds['appOpen']!,
         request: const AdRequest(),
         adLoadCallback: AppOpenAdLoadCallback(
           onAdLoaded: (ad) {
@@ -293,13 +325,13 @@ class AdsService {
               onAdDismissedFullScreenContent: (ad) {
                 ad.dispose();
                 _isAppOpenAdLoaded = false;
-                _loadAppOpenAd(); // Load next ad
+                loadAppOpenAd(); // Load next ad
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
                 print('❌ App open ad failed to show: $error');
                 ad.dispose();
                 _isAppOpenAdLoaded = false;
-                _loadAppOpenAd(); // Load next ad
+                loadAppOpenAd(); // Load next ad
               },
             );
           },
@@ -308,7 +340,6 @@ class AdsService {
             _isAppOpenAdLoaded = false;
           },
         ),
-        orientation: AppOpenAd.orientationPortrait,
       );
     } catch (error) {
       print('❌ Error loading app open ad: $error');
@@ -324,12 +355,15 @@ class AdsService {
   }
 
   // Reward Ad Methods
-  Future<void> _loadRewardedAd() async {
-    if (!_adStatus['reward']!) return;
+  Future<void> loadRewardedAd() async {
+    if (!_adStatus['rewarded']! || !_adIds.containsKey('rewarded')) {
+      print('⚠️ Rewarded ad not enabled or no ad ID configured');
+      return;
+    }
     
     try {
       await RewardedAd.load(
-        adUnitId: _adIds['reward']!,
+        adUnitId: _adIds['rewarded']!,
         request: const AdRequest(),
         rewardedAdLoadCallback: RewardedAdLoadCallback(
           onAdLoaded: (ad) {
@@ -341,13 +375,13 @@ class AdsService {
               onAdDismissedFullScreenContent: (ad) {
                 ad.dispose();
                 _isRewardedAdLoaded = false;
-                _loadRewardedAd(); // Load next ad
+                loadRewardedAd(); // Load next ad
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
                 print('❌ Rewarded ad failed to show: $error');
                 ad.dispose();
                 _isRewardedAdLoaded = false;
-                _loadRewardedAd(); // Load next ad
+                loadRewardedAd(); // Load next ad
               },
             );
           },
@@ -376,7 +410,68 @@ class AdsService {
       return rewardEarned;
     } else {
       print('⚠️ Rewarded ad not ready');
-      await _loadRewardedAd(); // Try to load if not ready
+      await loadRewardedAd(); // Try to load if not ready
+      return false;
+    }
+  }
+
+  // Rewarded Interstitial Ad Methods
+  Future<void> loadRewardedInterstitialAd() async {
+    if (!_adStatus['rewardedInterstitial']! || !_adIds.containsKey('rewardedInterstitial')) {
+      print('⚠️ Rewarded interstitial ad not enabled or no ad ID configured');
+      return;
+    }
+    
+    try {
+      await RewardedInterstitialAd.load(
+        adUnitId: _adIds['rewardedInterstitial']!,
+        request: const AdRequest(),
+        rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _rewardedInterstitialAd = ad;
+            _isRewardedInterstitialAdLoaded = true;
+            print('✅ Rewarded interstitial ad loaded');
+            
+            ad.fullScreenContentCallback = FullScreenContentCallback(
+              onAdDismissedFullScreenContent: (ad) {
+                ad.dispose();
+                _isRewardedInterstitialAdLoaded = false;
+                loadRewardedInterstitialAd(); // Load next ad
+              },
+              onAdFailedToShowFullScreenContent: (ad, error) {
+                print('❌ Rewarded interstitial ad failed to show: $error');
+                ad.dispose();
+                _isRewardedInterstitialAdLoaded = false;
+                loadRewardedInterstitialAd(); // Load next ad
+              },
+            );
+          },
+          onAdFailedToLoad: (error) {
+            print('❌ Rewarded interstitial ad failed to load: $error');
+            _isRewardedInterstitialAdLoaded = false;
+          },
+        ),
+      );
+    } catch (error) {
+      print('❌ Error loading rewarded interstitial ad: $error');
+    }
+  }
+
+  Future<bool> showRewardedInterstitialAd() async {
+    if (_isRewardedInterstitialAdLoaded && _rewardedInterstitialAd != null) {
+      bool rewardEarned = false;
+      
+      await _rewardedInterstitialAd!.show(
+        onUserEarnedReward: (ad, reward) {
+          rewardEarned = true;
+          print('✅ User earned reward: ${reward.amount} ${reward.type}');
+        },
+      );
+      
+      return rewardEarned;
+    } else {
+      print('⚠️ Rewarded interstitial ad not ready');
+      await loadRewardedInterstitialAd(); // Try to load if not ready
       return false;
     }
   }
@@ -384,18 +479,23 @@ class AdsService {
   // Refresh ads config (call this periodically or when app resumes)
   Future<void> refreshAdsConfig() async {
     await _fetchAdsConfig();
-    await _loadAllAds();
+    if (_adIds.isNotEmpty) {
+      await _loadAllAds();
+    }
   }
 
   // Check if specific ad type is enabled
   bool isAdEnabled(String adType) {
-    return _adStatus[adType] ?? false;
+    return _adStatus[adType] ?? false && _adIds.containsKey(adType);
   }
 
   // Get ad ID for specific type
   String? getAdId(String adType) {
     return _adIds[adType];
   }
+
+  // Check if ads are configured
+  bool get hasAdsConfigured => _adIds.isNotEmpty;
 
   // Dispose all ads
   void dispose() {
@@ -404,5 +504,6 @@ class AdsService {
     _nativeAd?.dispose();
     _appOpenAd?.dispose();
     _rewardedAd?.dispose();
+    _rewardedInterstitialAd?.dispose();
   }
 }
