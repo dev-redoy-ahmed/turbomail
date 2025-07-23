@@ -10,6 +10,7 @@ const config = require('../config');
 
 // Import models
 const AdsConfig = require('./models/AdsConfig');
+const AppUpdate = require('./models/AppUpdate');
 
 const app = express();
 const PORT = config.ADMIN.PORT;
@@ -346,6 +347,141 @@ app.post('/ads-management/settings', requireAuth, async (req, res) => {
       adsEnabled: false,
       success: null, 
       error: `❌ Failed to update settings: ${error.message}` 
+    });
+  }
+});
+
+// App Updates Management Routes
+app.get('/app-updates', requireAuth, async (req, res) => {
+  try {
+    const updates = await AppUpdate.getAllUpdates();
+    const activeUpdate = await AppUpdate.getActiveUpdate();
+    
+    res.render('app-updates', { 
+      updates,
+      activeUpdate,
+      success: null, 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error loading app updates:', error);
+    res.render('app-updates', { 
+      updates: [],
+      activeUpdate: null,
+      success: null, 
+      error: `Failed to load app updates: ${error.message}` 
+    });
+  }
+});
+
+app.post('/app-updates/create', requireAuth, async (req, res) => {
+  try {
+    const { 
+      versionName, 
+      versionCode, 
+      isForceUpdate, 
+      isNormalUpdate, 
+      isActive, 
+      updateMessage, 
+      updateLink, 
+      platform 
+    } = req.body;
+    
+    if (!versionName || !versionCode) {
+      throw new Error('Version name and version code are required');
+    }
+    
+    const updateData = {
+      versionName: versionName.trim(),
+      versionCode: parseInt(versionCode),
+      isForceUpdate: isForceUpdate === 'true',
+      isNormalUpdate: isNormalUpdate === 'true',
+      isActive: isActive === 'true',
+      updateMessage: updateMessage || '',
+      updateLink: updateLink || '',
+      platform: platform || 'android'
+    };
+    
+    await AppUpdate.createOrUpdateVersion(updateData);
+    
+    const updates = await AppUpdate.getAllUpdates();
+    const activeUpdate = await AppUpdate.getActiveUpdate();
+    
+    res.render('app-updates', { 
+      updates,
+      activeUpdate,
+      success: `✅ App version ${versionName} (${versionCode}) created/updated successfully!`, 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error creating app update:', error);
+    const updates = await AppUpdate.getAllUpdates();
+    const activeUpdate = await AppUpdate.getActiveUpdate();
+    
+    res.render('app-updates', { 
+      updates,
+      activeUpdate,
+      success: null, 
+      error: `❌ Failed to create/update version: ${error.message}` 
+    });
+  }
+});
+
+app.post('/app-updates/activate/:versionCode', requireAuth, async (req, res) => {
+  try {
+    const versionCode = parseInt(req.params.versionCode);
+    await AppUpdate.activateVersion(versionCode);
+    
+    const updates = await AppUpdate.getAllUpdates();
+    const activeUpdate = await AppUpdate.getActiveUpdate();
+    
+    res.render('app-updates', { 
+      updates,
+      activeUpdate,
+      success: `✅ Version ${versionCode} activated successfully!`, 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error activating version:', error);
+    const updates = await AppUpdate.getAllUpdates();
+    const activeUpdate = await AppUpdate.getActiveUpdate();
+    
+    res.render('app-updates', { 
+      updates,
+      activeUpdate,
+      success: null, 
+      error: `❌ Failed to activate version: ${error.message}` 
+    });
+  }
+});
+
+app.delete('/app-updates/delete/:versionCode', requireAuth, async (req, res) => {
+  try {
+    const versionCode = parseInt(req.params.versionCode);
+    await AppUpdate.findOneAndDelete({ versionCode });
+    
+    res.json({ success: true, message: 'Version deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting version:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API endpoint to get app updates for Flutter app
+app.get('/api/app-updates', async (req, res) => {
+  try {
+    const { platform } = req.query;
+    const activeUpdate = await AppUpdate.getActiveUpdate(platform || 'android');
+    
+    res.json({
+      success: true,
+      data: activeUpdate
+    });
+  } catch (error) {
+    console.error('Error getting app updates:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });

@@ -1,69 +1,40 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/ads_model.dart';
 
 class AppUpdateService {
-  static const String _baseUrl = 'http://165.22.109.153:3003'; // Production server URL
+  // Mail API URL with API key
+  static const String _baseUrl = 'http://localhost:3001'; // Local development
+  // static const String _baseUrl = 'http://YOUR_VPS_IP:3001'; // Production VPS
+  static const String _apiKey = 'tempmail-master-key-2024';
   
   static AppUpdateService? _instance;
   static AppUpdateService get instance => _instance ??= AppUpdateService._();
   
   AppUpdateService._();
   
-  // App update model
-  class AppUpdate {
-    final String versionName;
-    final int versionCode;
-    final bool isForceUpdate;
-    final bool isNormalUpdate;
-    final bool isActive;
-    final String? updateMessage;
-    final String? updateLink;
-    final DateTime createdAt;
-    final DateTime updatedAt;
-    
-    AppUpdate({
-      required this.versionName,
-      required this.versionCode,
-      required this.isForceUpdate,
-      required this.isNormalUpdate,
-      required this.isActive,
-      this.updateMessage,
-      this.updateLink,
-      required this.createdAt,
-      required this.updatedAt,
-    });
-    
-    factory AppUpdate.fromJson(Map<String, dynamic> json) {
-      return AppUpdate(
-        versionName: json['versionName'] ?? '',
-        versionCode: json['versionCode'] ?? 0,
-        isForceUpdate: json['isForceUpdate'] ?? false,
-        isNormalUpdate: json['isNormalUpdate'] ?? false,
-        isActive: json['isActive'] ?? false,
-        updateMessage: json['updateMessage'],
-        updateLink: json['updateLink'],
-        createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-        updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-      );
-    }
-  }
-  
   // Check for app updates
-  Future<AppUpdate?> checkForUpdates() async {
+  Future<AppUpdateModel?> checkForUpdates() async {
     try {
+      // Determine platform
+      String platform = Platform.isAndroid ? 'android' : 'ios';
+      
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/app-update'),
+        Uri.parse('$_baseUrl/app-updates?platform=$platform&key=$_apiKey'),
         headers: {'Content-Type': 'application/json'},
       );
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success'] && data['update'] != null) {
-          return AppUpdate.fromJson(data['update']);
+        if (data['success'] && data['hasUpdate'] == true && data['update'] != null) {
+          return AppUpdateModel.fromJson(data['update']);
         }
+      } else if (response.statusCode == 403) {
+        print('❌ Invalid API key for app updates');
       }
       return null;
     } catch (e) {
@@ -115,7 +86,7 @@ class AppUpdateService {
   }
   
   // Show update dialog
-  Future<void> showUpdateDialog(BuildContext context, AppUpdate update) async {
+  Future<void> showUpdateDialog(BuildContext context, AppUpdateModel update) async {
     final currentVersion = await getCurrentAppVersion();
     final isUpdateNeeded = isUpdateAvailable(
       currentVersion['versionName'],
@@ -134,13 +105,13 @@ class AppUpdateService {
   }
   
   // Force update dialog
-  void _showForceUpdateDialog(BuildContext context, AppUpdate update) {
+  void _showForceUpdateDialog(BuildContext context, AppUpdateModel update) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false,
+        return PopScope(
+          canPop: false,
           child: AlertDialog(
             title: Row(
               children: [
@@ -158,8 +129,8 @@ class AppUpdateService {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 10),
-                if (update.updateMessage != null && update.updateMessage!.isNotEmpty)
-                  Text(update.updateMessage!),
+                if (update.updateMessage.isNotEmpty)
+                  Text(update.updateMessage),
                 SizedBox(height: 10),
                 Container(
                   padding: EdgeInsets.all(12),
@@ -204,7 +175,7 @@ class AppUpdateService {
   }
   
   // Normal update dialog
-  void _showNormalUpdateDialog(BuildContext context, AppUpdate update) {
+  void _showNormalUpdateDialog(BuildContext context, AppUpdateModel update) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -225,8 +196,8 @@ class AppUpdateService {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              if (update.updateMessage != null && update.updateMessage!.isNotEmpty)
-                Text(update.updateMessage!),
+              if (update.updateMessage.isNotEmpty)
+                Text(update.updateMessage),
               SizedBox(height: 10),
               Container(
                 padding: EdgeInsets.all(12),
@@ -277,18 +248,19 @@ class AppUpdateService {
   }
   
   // Launch update URL
-  Future<void> _launchUpdateUrl(String? updateUrl) async {
-    if (updateUrl == null || updateUrl.isEmpty) {
+  Future<void> _launchUpdateUrl(String updateUrl) async {
+    String finalUrl = updateUrl;
+    if (finalUrl.isEmpty) {
       // Default to Play Store if no URL provided
-      updateUrl = 'https://play.google.com/store/apps/details?id=com.turbomail.app';
+      finalUrl = 'https://play.google.com/store/apps/details?id=com.turbomail.app';
     }
     
     try {
-      final uri = Uri.parse(updateUrl);
+      final uri = Uri.parse(finalUrl);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        print('Could not launch update URL: $updateUrl');
+        print('Could not launch update URL: $finalUrl');
       }
     } catch (e) {
       print('Error launching update URL: $e');
