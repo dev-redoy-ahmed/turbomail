@@ -31,11 +31,6 @@ const appUpdateSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  platform: {
-    type: String,
-    enum: ['android', 'ios', 'both'],
-    default: 'both'
-  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -52,20 +47,14 @@ appUpdateSchema.pre('save', function(next) {
   next();
 });
 
-// Static method to get active update
-appUpdateSchema.statics.getActiveUpdate = async function(platform = 'both') {
+// Static method to get the latest active update
+appUpdateSchema.statics.getLatestUpdate = async function() {
   try {
-    const update = await this.findOne({ 
-      isActive: true,
-      $or: [
-        { platform: platform },
-        { platform: 'both' }
-      ]
-    }).sort({ versionCode: -1 });
-    
+    const update = await this.findOne({ isActive: true })
+      .sort({ versionCode: -1 });
     return update;
   } catch (error) {
-    console.error('Error getting active update:', error);
+    console.error('Error getting latest update:', error);
     return null;
   }
 };
@@ -84,7 +73,7 @@ appUpdateSchema.statics.getAllUpdates = async function() {
 // Static method to create or update app version
 appUpdateSchema.statics.createOrUpdateVersion = async function(updateData) {
   try {
-    // Deactivate all previous updates if this one is being set as active
+    // If setting as active, deactivate all other versions
     if (updateData.isActive) {
       await this.updateMany({}, { isActive: false });
     }
@@ -97,12 +86,12 @@ appUpdateSchema.statics.createOrUpdateVersion = async function(updateData) {
     
     return result;
   } catch (error) {
-    console.error('Error creating/updating version:', error);
+    console.error('Error creating/updating app version:', error);
     throw error;
   }
 };
 
-// Static method to activate specific version
+// Static method to activate a specific version
 appUpdateSchema.statics.activateVersion = async function(versionCode) {
   try {
     // Deactivate all versions first
@@ -118,6 +107,17 @@ appUpdateSchema.statics.activateVersion = async function(versionCode) {
     return result;
   } catch (error) {
     console.error('Error activating version:', error);
+    throw error;
+  }
+};
+
+// Static method to delete a version
+appUpdateSchema.statics.deleteVersion = async function(versionCode) {
+  try {
+    const result = await this.findOneAndDelete({ versionCode: versionCode });
+    return result;
+  } catch (error) {
+    console.error('Error deleting version:', error);
     throw error;
   }
 };
