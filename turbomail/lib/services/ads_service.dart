@@ -40,7 +40,7 @@ class AdsService {
   bool _isRewardedInterstitialAdLoaded = false;
 
   // Admin panel API URL
-  String get _adminApiUrl => 'http://localhost:3001/api/ads-config'; // Change this to your admin panel URL
+  String get _adminApiUrl => 'http://165.22.109.153:3003/api/ads-config'; // Production admin panel URL
 
   // Initialize ads service
   Future<void> initialize() async {

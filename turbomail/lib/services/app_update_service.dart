@@ -5,7 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUpdateService {
-  static const String _baseUrl = 'http://localhost:3003'; // Change to your server URL
+  static const String _baseUrl = 'http://165.22.109.153:3003'; // Production server URL
   
   static AppUpdateService? _instance;
   static AppUpdateService get instance => _instance ??= AppUpdateService._();
