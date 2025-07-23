@@ -11,7 +11,7 @@ module.exports = {
 
   // Admin Panel Configuration
   ADMIN: {
-    PORT: 3006,
+    PORT: 3009,
     USERNAME: 'admin',
     PASSWORD: 'admin123'
   },

@@ -37,21 +37,10 @@ class _TurboMailAppState extends State<TurboMailApp> {
   @override
   void initState() {
     super.initState();
-    // Check for app updates after the widget is built
+    // Initialize app update service after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForAppUpdates();
+      AppUpdateService.initialize(context);
     });
-  }
-
-  Future<void> _checkForAppUpdates() async {
-    try {
-      final update = await AppUpdateService.instance.checkForUpdates();
-      if (update != null && mounted) {
-        await AppUpdateService.instance.showUpdateDialog(context, update);
-      }
-    } catch (e) {
-      print('Error checking for app updates: $e');
-    }
   }
 
   @override

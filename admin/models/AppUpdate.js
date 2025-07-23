@@ -1,57 +1,57 @@
 const mongoose = require('mongoose');
 
 const appUpdateSchema = new mongoose.Schema({
-  versionName: {
+  version_name: {
     type: String,
     required: true,
     trim: true
   },
-  versionCode: {
+  version_code: {
     type: Number,
     required: true,
     unique: true
   },
-  isForceUpdate: {
+  is_force_update: {
     type: Boolean,
     default: false
   },
-  isNormalUpdate: {
+  is_normal_update: {
     type: Boolean,
     default: false
   },
-  isActive: {
+  is_active: {
     type: Boolean,
     default: false
   },
-  updateMessage: {
+  update_message: {
     type: String,
-    default: ''
+    default: 'A new version is available. Please update for the best experience.'
   },
-  updateLink: {
+  update_link: {
     type: String,
-    default: ''
+    default: 'https://example.com/app-download'
   },
-  createdAt: {
+  created_at: {
     type: Date,
     default: Date.now
   },
-  updatedAt: {
+  updated_at: {
     type: Date,
     default: Date.now
   }
 });
 
-// Update the updatedAt field before saving
+// Update the updated_at field before saving
 appUpdateSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
+  this.updated_at = Date.now();
   next();
 });
 
 // Static method to get the latest active update
 appUpdateSchema.statics.getLatestUpdate = async function() {
   try {
-    const update = await this.findOne({ isActive: true })
-      .sort({ versionCode: -1 });
+    const update = await this.findOne({ is_active: true })
+      .sort({ version_code: -1 });
     return update;
   } catch (error) {
     console.error('Error getting latest update:', error);
@@ -62,7 +62,7 @@ appUpdateSchema.statics.getLatestUpdate = async function() {
 // Static method to get all updates
 appUpdateSchema.statics.getAllUpdates = async function() {
   try {
-    const updates = await this.find({}).sort({ versionCode: -1 });
+    const updates = await this.find({}).sort({ version_code: -1 });
     return updates;
   } catch (error) {
     console.error('Error getting all updates:', error);
@@ -74,13 +74,13 @@ appUpdateSchema.statics.getAllUpdates = async function() {
 appUpdateSchema.statics.createOrUpdateVersion = async function(updateData) {
   try {
     // If setting as active, deactivate all other versions
-    if (updateData.isActive) {
-      await this.updateMany({}, { isActive: false });
+    if (updateData.is_active) {
+      await this.updateMany({}, { is_active: false });
     }
     
     const result = await this.findOneAndUpdate(
-      { versionCode: updateData.versionCode },
-      { ...updateData, updatedAt: Date.now() },
+      { version_code: updateData.version_code },
+      { ...updateData, updated_at: Date.now() },
       { upsert: true, new: true }
     );
     
@@ -95,12 +95,12 @@ appUpdateSchema.statics.createOrUpdateVersion = async function(updateData) {
 appUpdateSchema.statics.activateVersion = async function(versionCode) {
   try {
     // Deactivate all versions first
-    await this.updateMany({}, { isActive: false });
+    await this.updateMany({}, { is_active: false });
     
     // Activate the specified version
     const result = await this.findOneAndUpdate(
-      { versionCode: versionCode },
-      { isActive: true, updatedAt: Date.now() },
+      { version_code: versionCode },
+      { is_active: true, updated_at: Date.now() },
       { new: true }
     );
     
@@ -111,10 +111,26 @@ appUpdateSchema.statics.activateVersion = async function(versionCode) {
   }
 };
 
+// Static method to deactivate a specific version
+appUpdateSchema.statics.deactivateVersion = async function(versionCode) {
+  try {
+    const result = await this.findOneAndUpdate(
+      { version_code: versionCode },
+      { is_active: false, updated_at: Date.now() },
+      { new: true }
+    );
+    
+    return result;
+  } catch (error) {
+    console.error('Error deactivating version:', error);
+    throw error;
+  }
+};
+
 // Static method to delete a version
 appUpdateSchema.statics.deleteVersion = async function(versionCode) {
   try {
-    const result = await this.findOneAndDelete({ versionCode: versionCode });
+    const result = await this.findOneAndDelete({ version_code: versionCode });
     return result;
   } catch (error) {
     console.error('Error deleting version:', error);

@@ -33,7 +33,7 @@ app.use(session({
 }));
 
 // MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/turbomail';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://turbomail:we1we2we3@turbomail.gjohjma.mongodb.net/?retryWrites=true&w=majority&appName=turbomail';
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -260,7 +260,22 @@ app.get('/ads-management', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error loading ads management:', error);
     res.render('ads-management', { 
-      adsConfig: {}, 
+      adsConfig: { 
+        android: {
+          banner: { id: '', description: '', isActive: false },
+          interstitial: { id: '', description: '', isActive: false },
+          native: { id: '', description: '', isActive: false },
+          appopen: { id: '', description: '', isActive: false },
+          reward: { id: '', description: '', isActive: false }
+        },
+        ios: {
+          banner: { id: '', description: '', isActive: false },
+          interstitial: { id: '', description: '', isActive: false },
+          native: { id: '', description: '', isActive: false },
+          appopen: { id: '', description: '', isActive: false },
+          reward: { id: '', description: '', isActive: false }
+        }
+      }, 
       mongoUri: '',
       adsEnabled: false,
       success: null, 
@@ -271,50 +286,84 @@ app.get('/ads-management', requireAuth, async (req, res) => {
 
 app.post('/ads-management/update', requireAuth, async (req, res) => {
   try {
-    const { adType, adId, description, isActive, platform } = req.body;
+    const { platform, banner, interstitial, native, appopen, reward } = req.body;
     
-    if (!adType || !adId || !adId.trim()) {
-      throw new Error('Ad type and Ad ID are required');
+    if (!platform) {
+      throw new Error('Platform is required');
     }
     
-    // Validate ad ID format (basic AdMob format check)
-    const adIdPattern = /^ca-app-pub-\d{16}\/\d{10}$/;
-    if (!adIdPattern.test(adId.trim())) {
-      throw new Error('Invalid Ad ID format. Please use format: ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx');
+    // Validate platform
+    if (!['android', 'ios'].includes(platform)) {
+      throw new Error('Platform must be either android or ios');
     }
     
-    const updateOptions = {
-      description: description || '',
-      isActive: isActive === 'true',
-      platform: platform || 'android'
-    };
+    const adTypes = { banner, interstitial, native, appopen, reward };
+    const updatedAds = [];
     
-    await AdsConfig.updateAdConfig(adType, adId.trim(), updateOptions);
+    // Update each ad type for the platform
+    for (const [adType, adId] of Object.entries(adTypes)) {
+      if (adId && adId.trim()) {
+        // Validate ad ID format (basic AdMob format check)
+        const adIdPattern = /^ca-app-pub-\d{16}\/\d{10}$/;
+        if (!adIdPattern.test(adId.trim())) {
+          throw new Error(`Invalid ${adType} Ad ID format. Please use format: ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx`);
+        }
+        
+        await AdsConfig.updateAdConfig(adType, platform, adId.trim(), {
+          description: '',
+          isActive: true
+        });
+        updatedAds.push(adType);
+      }
+    }
     
+    // Get updated data
     const adsConfig = await AdsConfig.getAllAdsConfig();
-    const mongoUri = process.env.MONGO_URI || '';
-    const adsEnabled = true;
     
     res.render('ads-management', { 
       adsConfig, 
-      mongoUri,
-      adsEnabled,
-      success: `✅ ${adType.charAt(0).toUpperCase() + adType.slice(1)} ad updated successfully!`, 
+      mongoUri: process.env.MONGO_URI || '',
+      adsEnabled: true,
+      success: `✅ ${platform.toUpperCase()} ads updated successfully! Updated: ${updatedAds.join(', ')}`, 
       error: null 
     });
   } catch (error) {
     console.error('Error updating ad config:', error);
-    const adsConfig = await AdsConfig.getAllAdsConfig();
-    const mongoUri = process.env.MONGO_URI || '';
-    const adsEnabled = true;
     
-    res.render('ads-management', { 
-      adsConfig, 
-      mongoUri,
-      adsEnabled,
-      success: null, 
-      error: `❌ Failed to update ad: ${error.message}` 
-    });
+    // Get current data for error response
+    try {
+      const adsConfig = await AdsConfig.getAllAdsConfig();
+      res.render('ads-management', { 
+        adsConfig, 
+        mongoUri: process.env.MONGO_URI || '',
+        adsEnabled: true,
+        success: null, 
+        error: `❌ Failed to update ads: ${error.message}` 
+      });
+    } catch (getError) {
+      res.render('ads-management', { 
+        adsConfig: { 
+          android: {
+            banner: { id: '', description: '', isActive: false },
+            interstitial: { id: '', description: '', isActive: false },
+            native: { id: '', description: '', isActive: false },
+            appopen: { id: '', description: '', isActive: false },
+            reward: { id: '', description: '', isActive: false }
+          },
+          ios: {
+            banner: { id: '', description: '', isActive: false },
+            interstitial: { id: '', description: '', isActive: false },
+            native: { id: '', description: '', isActive: false },
+            appopen: { id: '', description: '', isActive: false },
+            reward: { id: '', description: '', isActive: false }
+          }
+        }, 
+        mongoUri: process.env.MONGO_URI || '',
+        adsEnabled: true,
+        success: null, 
+        error: `❌ Failed to update ads: ${error.message}` 
+      });
+    }
   }
 });
 
@@ -328,6 +377,7 @@ app.post('/ads-management/settings', requireAuth, async (req, res) => {
       process.env.MONGO_URI = mongoUri.trim();
     }
     
+    // Get updated data
     const adsConfig = await AdsConfig.getAllAdsConfig();
     
     res.render('ads-management', { 
@@ -339,10 +389,24 @@ app.post('/ads-management/settings', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating settings:', error);
-    const adsConfig = await AdsConfig.getAllAdsConfig();
     
     res.render('ads-management', { 
-      adsConfig, 
+      adsConfig: { 
+        android: {
+          banner: { id: '', description: '', isActive: false },
+          interstitial: { id: '', description: '', isActive: false },
+          native: { id: '', description: '', isActive: false },
+          appopen: { id: '', description: '', isActive: false },
+          reward: { id: '', description: '', isActive: false }
+        },
+        ios: {
+          banner: { id: '', description: '', isActive: false },
+          interstitial: { id: '', description: '', isActive: false },
+          native: { id: '', description: '', isActive: false },
+          appopen: { id: '', description: '', isActive: false },
+          reward: { id: '', description: '', isActive: false }
+        }
+      }, 
       mongoUri: process.env.MONGO_URI || '',
       adsEnabled: false,
       success: null, 
@@ -365,27 +429,27 @@ app.get('/app-updates', requireAuth, async (req, res) => {
     res.render('app-updates', { 
       updates: [], 
       success: null, 
-      error: `Failed to load app updates: ${error.message}` 
+      error: error.message 
     });
   }
 });
 
 app.post('/app-updates/create', requireAuth, async (req, res) => {
   try {
-    const { versionName, versionCode, updateMessage, updateLink, isForceUpdate, isNormalUpdate, isActive } = req.body;
+    const { version_name, version_code, update_message, update_link, is_force_update, is_normal_update, is_active } = req.body;
     
-    if (!versionName || !versionCode) {
+    if (!version_name || !version_code) {
       throw new Error('Version name and version code are required');
     }
     
     const updateData = {
-      versionName: versionName.trim(),
-      versionCode: parseInt(versionCode),
-      updateMessage: updateMessage || '',
-      updateLink: updateLink || '',
-      isForceUpdate: isForceUpdate === 'true',
-      isNormalUpdate: isNormalUpdate === 'true',
-      isActive: isActive === 'true'
+      version_name: version_name.trim(),
+      version_code: parseInt(version_code),
+      update_message: update_message || 'A new version is available. Please update for the best experience.',
+      update_link: update_link || 'https://example.com/app-download',
+      is_force_update: is_force_update === 'true',
+      is_normal_update: is_normal_update === 'true',
+      is_active: is_active === 'true'
     };
     
     await AppUpdate.createOrUpdateVersion(updateData);
@@ -393,7 +457,7 @@ app.post('/app-updates/create', requireAuth, async (req, res) => {
     const updates = await AppUpdate.getAllUpdates();
     res.render('app-updates', { 
       updates, 
-      success: `✅ App version ${versionName} created successfully!`, 
+      success: `✅ App version ${version_name} created successfully!`, 
       error: null 
     });
   } catch (error) {
@@ -409,13 +473,13 @@ app.post('/app-updates/create', requireAuth, async (req, res) => {
 
 app.post('/app-updates/activate', requireAuth, async (req, res) => {
   try {
-    const { versionCode } = req.body;
+    const { version_code } = req.body;
     
-    if (!versionCode) {
+    if (!version_code) {
       throw new Error('Version code is required');
     }
     
-    const activatedVersion = await AppUpdate.activateVersion(parseInt(versionCode));
+    const activatedVersion = await AppUpdate.activateVersion(parseInt(version_code));
     
     if (!activatedVersion) {
       throw new Error('Version not found');
@@ -424,7 +488,7 @@ app.post('/app-updates/activate', requireAuth, async (req, res) => {
     const updates = await AppUpdate.getAllUpdates();
     res.render('app-updates', { 
       updates, 
-      success: `✅ Version ${activatedVersion.versionName} activated successfully!`, 
+      success: `✅ Version ${activatedVersion.version_name} activated successfully!`, 
       error: null 
     });
   } catch (error) {
@@ -438,15 +502,46 @@ app.post('/app-updates/activate', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/app-updates/delete', requireAuth, async (req, res) => {
+app.post('/app-updates/deactivate', requireAuth, async (req, res) => {
   try {
-    const { versionCode } = req.body;
+    const { version_code } = req.body;
     
-    if (!versionCode) {
+    if (!version_code) {
       throw new Error('Version code is required');
     }
     
-    const deletedVersion = await AppUpdate.deleteVersion(parseInt(versionCode));
+    const deactivatedVersion = await AppUpdate.deactivateVersion(parseInt(version_code));
+    
+    if (!deactivatedVersion) {
+      throw new Error('Version not found');
+    }
+    
+    const updates = await AppUpdate.getAllUpdates();
+    res.render('app-updates', { 
+      updates, 
+      success: `✅ Version ${deactivatedVersion.version_name} deactivated successfully!`, 
+      error: null 
+    });
+  } catch (error) {
+    console.error('Error deactivating app update:', error);
+    const updates = await AppUpdate.getAllUpdates();
+    res.render('app-updates', { 
+      updates, 
+      success: null, 
+      error: `❌ Failed to deactivate version: ${error.message}` 
+    });
+  }
+});
+
+app.post('/app-updates/delete', requireAuth, async (req, res) => {
+  try {
+    const { version_code } = req.body;
+    
+    if (!version_code) {
+      throw new Error('Version code is required');
+    }
+    
+    const deletedVersion = await AppUpdate.deleteVersion(parseInt(version_code));
     
     if (!deletedVersion) {
       throw new Error('Version not found');
@@ -455,7 +550,7 @@ app.post('/app-updates/delete', requireAuth, async (req, res) => {
     const updates = await AppUpdate.getAllUpdates();
     res.render('app-updates', { 
       updates, 
-      success: `✅ Version ${deletedVersion.versionName} deleted successfully!`, 
+      success: `✅ Version ${deletedVersion.version_name} deleted successfully!`, 
       error: null 
     });
   } catch (error) {
@@ -472,13 +567,76 @@ app.post('/app-updates/delete', requireAuth, async (req, res) => {
 // API endpoint to get ads config for Flutter app
 app.get('/api/ads-config', async (req, res) => {
   try {
+    const { platform } = req.query;
+    
+    if (platform && ['android', 'ios'].includes(platform)) {
+      // Get ads for specific platform
+      const adsConfig = await AdsConfig.getAdsByPlatform(platform);
+      res.json({
+        success: true,
+        data: adsConfig
+      });
+    } else {
+      // Get all ads config (both platforms)
+      const adsConfig = await AdsConfig.getAllAdsConfig();
+      res.json({
+        success: true,
+        data: adsConfig
+      });
+    }
+  } catch (error) {
+    console.error('Error getting ads config:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// API endpoint to update ads config
+app.post('/api/ads-config', async (req, res) => {
+  try {
+    const { adType, platform, adId, description, isActive } = req.body;
+    
+    if (!adType || !platform || !adId || !adId.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ad type, platform, and Ad ID are required'
+      });
+    }
+    
+    // Validate platform
+    if (!['android', 'ios'].includes(platform)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Platform must be either android or ios'
+      });
+    }
+    
+    // Validate ad ID format (basic AdMob format check)
+    const adIdPattern = /^ca-app-pub-\d{16}\/\d{10}$/;
+    if (!adIdPattern.test(adId.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid Ad ID format. Please use format: ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx'
+      });
+    }
+    
+    const updateOptions = {
+      description: description || '',
+      isActive: isActive === true || isActive === 'true'
+    };
+    
+    await AdsConfig.updateAdConfig(adType, platform, adId.trim(), updateOptions);
+    
     const adsConfig = await AdsConfig.getAllAdsConfig();
     res.json({
       success: true,
-      data: adsConfig
+      data: adsConfig,
+      message: `${platform.toUpperCase()} ${adType.charAt(0).toUpperCase() + adType.slice(1)} ad updated successfully!`
     });
   } catch (error) {
-    console.error('Error getting ads config:', error);
+    console.error('Error updating ads config:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -502,13 +660,13 @@ app.get('/api/app-update/latest', async (req, res) => {
     res.json({
       success: true,
       data: {
-        versionName: latestUpdate.versionName,
-        versionCode: latestUpdate.versionCode,
-        isForceUpdate: latestUpdate.isForceUpdate,
-        isNormalUpdate: latestUpdate.isNormalUpdate,
-        updateMessage: latestUpdate.updateMessage,
-        updateLink: latestUpdate.updateLink,
-        isActive: latestUpdate.isActive
+        version_name: latestUpdate.version_name,
+        version_code: latestUpdate.version_code,
+        is_force_update: latestUpdate.is_force_update,
+        is_normal_update: latestUpdate.is_normal_update,
+        update_message: latestUpdate.update_message,
+        update_link: latestUpdate.update_link,
+        is_active: latestUpdate.is_active
       }
     });
   } catch (error) {
@@ -530,6 +688,44 @@ app.get('/api/app-updates', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting all app updates:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// API endpoint to create or update app version
+app.post('/api/app-updates', async (req, res) => {
+  try {
+    const { version_name, version_code, update_message, update_link, is_force_update, is_normal_update, is_active } = req.body;
+    
+    if (!version_name || !version_code) {
+      return res.status(400).json({
+        success: false,
+        error: 'Version name and version code are required'
+      });
+    }
+    
+    const updateData = {
+      version_name: version_name.trim(),
+      version_code: parseInt(version_code),
+      update_message: update_message || 'A new version is available. Please update for the best experience.',
+      update_link: update_link || 'https://example.com/app-download',
+      is_force_update: is_force_update === true || is_force_update === 'true',
+      is_normal_update: is_normal_update === true || is_normal_update === 'true',
+      is_active: is_active === true || is_active === 'true'
+    };
+    
+    const result = await AppUpdate.createOrUpdateVersion(updateData);
+    
+    res.json({
+      success: true,
+      data: result,
+      message: `App version ${version_name} created/updated successfully!`
+    });
+  } catch (error) {
+    console.error('Error creating/updating app version:', error);
     res.status(500).json({
       success: false,
       error: error.message

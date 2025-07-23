@@ -330,6 +330,70 @@ app.get('/check/:email', async (req, res) => {
   }
 });
 
+// ✅ 10. Get ads configuration for Flutter app
+app.get('/ads-config', async (req, res) => {
+  try {
+    // Connect to the same MongoDB database used by admin panel
+    const adsConfig = await db.collection('adsconfigs').find({}).toArray();
+    
+    const formattedConfig = {};
+    adsConfig.forEach(ad => {
+      formattedConfig[ad.adType] = {
+        id: ad.adId,
+        isActive: ad.isActive,
+        platform: ad.platform,
+        description: ad.description
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: formattedConfig
+    });
+  } catch (error) {
+    console.error('❌ Ads config fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching ads configuration'
+    });
+  }
+});
+
+// ✅ 11. Get latest app update for Flutter app
+app.get('/app-update/latest', async (req, res) => {
+  try {
+    const latestUpdate = await db.collection('appupdates')
+      .findOne({ isActive: true }, { sort: { versionCode: -1 } });
+    
+    if (!latestUpdate) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No active app update found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        versionName: latestUpdate.versionName,
+        versionCode: latestUpdate.versionCode,
+        isForceUpdate: latestUpdate.isForceUpdate,
+        isNormalUpdate: latestUpdate.isNormalUpdate,
+        updateMessage: latestUpdate.updateMessage,
+        updateLink: latestUpdate.updateLink,
+        isActive: latestUpdate.isActive
+      }
+    });
+  } catch (error) {
+    console.error('❌ App update fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching app update information'
+    });
+  }
+});
+
 // ✅ Haraka: POST raw mail + broadcast to inbox + store in MongoDB
 app.post('/incoming/raw', express.raw({ type: '*/*', limit: config.EMAIL.MAX_MESSAGE_SIZE }), async (req, res) => {
   const to = req.query.to?.toLowerCase();
@@ -378,82 +442,6 @@ io.on('connection', socket => {
     socket.join(email.toLowerCase());
     console.log(`📡 Subscribed to inbox: ${email}`);
   });
-});
-
-// ✅ 10. Get ads configuration for Flutter app
-app.get('/ads-config', async (req, res) => {
-  const { platform } = req.query;
-  
-  try {
-    let query = { isActive: true };
-    if (platform && platform !== 'both') {
-      query.$or = [
-        { platform: platform },
-        { platform: 'both' }
-      ];
-    }
-    
-    const adsConfig = await db.collection('adsConfig')
-      .find(query)
-      .sort({ createdAt: -1 })
-      .toArray();
-    
-    res.json({
-      success: true,
-      ads: adsConfig.map(ad => ({
-        adType: ad.adType,
-        adId: ad.adId,
-        platform: ad.platform,
-        description: ad.description
-      }))
-    });
-  } catch (error) {
-    console.error('❌ Ads config fetch error:', error);
-    res.status(500).json({ success: false, error: 'Error fetching ads configuration' });
-  }
-});
-
-// ✅ 11. Get app updates for Flutter app
-app.get('/app-updates', async (req, res) => {
-  const { platform } = req.query;
-  
-  try {
-    let query = { isActive: true };
-    if (platform && platform !== 'both') {
-      query.$or = [
-        { platform: platform },
-        { platform: 'both' }
-      ];
-    }
-    
-    const activeUpdate = await db.collection('appUpdates')
-      .findOne(query, { sort: { createdAt: -1 } });
-    
-    if (!activeUpdate) {
-      return res.json({
-        success: true,
-        hasUpdate: false,
-        message: 'No updates available'
-      });
-    }
-    
-    res.json({
-      success: true,
-      hasUpdate: true,
-      update: {
-        versionName: activeUpdate.versionName,
-        versionCode: activeUpdate.versionCode,
-        isForceUpdate: activeUpdate.isForceUpdate,
-        isNormalUpdate: activeUpdate.isNormalUpdate,
-        updateMessage: activeUpdate.updateMessage,
-        updateLink: activeUpdate.updateLink,
-        platform: activeUpdate.platform
-      }
-    });
-  } catch (error) {
-    console.error('❌ App updates fetch error:', error);
-    res.status(500).json({ success: false, error: 'Error fetching app updates' });
-  }
 });
 
 // Graceful shutdown

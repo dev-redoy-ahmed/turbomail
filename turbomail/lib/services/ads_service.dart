@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:ui';
-import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -40,10 +39,8 @@ class AdsService {
   bool _isRewardedAdLoaded = false;
   bool _isRewardedInterstitialAdLoaded = false;
 
-  // Mail API URL with API key
-  String get _mailApiUrl => 'http://localhost:3001/ads-config'; // Local development
-  // String get _mailApiUrl => 'http://YOUR_VPS_IP:3001/ads-config'; // Production VPS
-  String get _apiKey => 'tempmail-master-key-2024';
+  // Admin panel API URL
+  String get _adminApiUrl => 'http://165.22.109.153:3003/api/ads-config'; // Production admin panel URL
 
   // Initialize ads service
   Future<void> initialize() async {
@@ -54,7 +51,7 @@ class AdsService {
       await MobileAds.instance.initialize();
       print('✅ Mobile Ads SDK initialized');
       
-      // Fetch ads config from mail API
+      // Fetch ads config from admin panel
       await _fetchAdsConfig();
       
       // Load ads only if we have valid configurations
@@ -70,58 +67,37 @@ class AdsService {
     }
   }
 
-  // Fetch ads configuration from mail API
+  // Fetch ads configuration from admin panel
   Future<void> _fetchAdsConfig() async {
     try {
-      print('📡 Fetching ads config from mail API...');
+      print('📡 Fetching ads config from admin panel...');
       
-      // Determine platform
-      String platform = 'android'; // Default to android
-      try {
-        if (PlatformDispatcher.instance.defaultRouteName.contains('ios')) {
-          platform = 'ios';
-        }
-      } catch (e) {
-        // Keep default platform
-      }
-      
-      final response = await _dio.get(
-        '$_mailApiUrl?platform=$platform&key=$_apiKey',
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        ),
-      );
+      final response = await _dio.get(_adminApiUrl);
       
       if (response.statusCode == 200 && response.data['success']) {
-        final adsList = response.data['ads'] as List<dynamic>;
+        final adsConfig = response.data['data'] as Map<String, dynamic>;
         
         // Clear existing configurations
         _adIds.clear();
         
-        // Process ads from API response
-        for (var ad in adsList) {
-          final adType = ad['adType'] as String;
-          final adId = ad['adId'] as String;
-          final isActive = ad['isActive'] as bool;
-          
-          if (adId.isNotEmpty && isActive) {
-            _adIds[adType] = adId;
-            _adStatus[adType] = true;
-            print('✅ Updated $adType: $adId (Active)');
+        // Update ad IDs and status from admin panel
+        adsConfig.forEach((adType, config) {
+          if (config != null && config['adId'] != null && config['adId'].toString().isNotEmpty) {
+            _adIds[adType] = config['adId'];
+            _adStatus[adType] = config['isActive'] ?? false;
+            print('✅ Updated $adType: ${config['adId']} (${config['isActive'] ? 'Active' : 'Inactive'})');
           } else {
             _adStatus[adType] = false;
-            print('⚠️ $adType is inactive or has no valid ad ID');
+            print('⚠️ No valid ad ID for $adType');
           }
-        }
+        });
         
         // Save to local storage for offline use
-        await _saveAdsConfigLocally({'ads': adsList});
+        await _saveAdsConfigLocally(adsConfig);
         
         print('✅ Ads config fetched successfully');
       } else {
-        throw Exception('Failed to fetch ads config: ${response.statusCode}');
+        throw Exception('Failed to fetch ads config');
       }
     } catch (error) {
       print('⚠️ Error fetching ads config: $error');
@@ -148,24 +124,18 @@ class AdsService {
       
       if (adsConfigString != null) {
         final adsConfig = jsonDecode(adsConfigString) as Map<String, dynamic>;
-        final adsList = adsConfig['ads'] as List<dynamic>? ?? [];
         
         // Clear existing configurations
         _adIds.clear();
         
-        // Process ads from local storage
-        for (var ad in adsList) {
-          final adType = ad['adType'] as String;
-          final adId = ad['adId'] as String;
-          final isActive = ad['isActive'] as bool;
-          
-          if (adId.isNotEmpty && isActive) {
-            _adIds[adType] = adId;
-            _adStatus[adType] = true;
+        adsConfig.forEach((adType, config) {
+          if (config != null && config['adId'] != null && config['adId'].toString().isNotEmpty) {
+            _adIds[adType] = config['adId'];
+            _adStatus[adType] = config['isActive'] ?? false;
           } else {
             _adStatus[adType] = false;
           }
-        }
+        });
         
         print('✅ Ads config loaded from local storage');
       } else {
@@ -265,14 +235,12 @@ class AdsService {
     }
   }
 
-  Future<bool> showInterstitialAd() async {
+  Future<void> showInterstitialAd() async {
     if (_isInterstitialAdLoaded && _interstitialAd != null) {
       await _interstitialAd!.show();
-      return true;
     } else {
       print('⚠️ Interstitial ad not ready');
       await loadInterstitialAd(); // Try to load if not ready
-      return false;
     }
   }
 
@@ -428,7 +396,7 @@ class AdsService {
     }
   }
 
-  Future<bool> showRewardedAd({VoidCallback? onUserEarnedReward}) async {
+  Future<bool> showRewardedAd() async {
     if (_isRewardedAdLoaded && _rewardedAd != null) {
       bool rewardEarned = false;
       
@@ -436,7 +404,6 @@ class AdsService {
         onUserEarnedReward: (ad, reward) {
           rewardEarned = true;
           print('✅ User earned reward: ${reward.amount} ${reward.type}');
-          onUserEarnedReward?.call();
         },
       );
       

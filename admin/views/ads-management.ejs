@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ads Management - TempMail Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-envelope"></i> TempMail</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="/dashboard" class="menu-item">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="/domains" class="menu-item">
+                <i class="fas fa-globe"></i> Manage Domains
+            </a>
+            <a href="/api-management" class="menu-item">
+                <i class="fas fa-key"></i> API Management
+            </a>
+            <a href="/ads-management" class="menu-item active">
+                <i class="fas fa-ad"></i> Ads Management
+            </a>
+            <a href="/app-updates" class="menu-item">
+                <i class="fas fa-mobile-alt"></i> App Updates
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header class="header">
+            <h1><i class="fas fa-ad"></i> Ads Management</h1>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </header>
+
+        <div class="content">
+            <% if (typeof message !== 'undefined' && message) { %>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <%= message %>
+                </div>
+            <% } %>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i> <%= error %>
+                </div>
+            <% } %>
+
+            <!-- Android Ads Configuration -->
+            <div class="card">
+                <h3><i class="fab fa-android"></i> Android Ad Configuration</h3>
+                <form action="/ads-management/update" method="POST">
+                    <input type="hidden" name="platform" value="android">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="android_banner">Banner Ad ID:</label>
+                            <input type="text" id="android_banner" name="banner" 
+                                   value="<%= adsConfig.android && adsConfig.android.banner ? adsConfig.android.banner.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="android_interstitial">Interstitial Ad ID:</label>
+                            <input type="text" id="android_interstitial" name="interstitial" 
+                                   value="<%= adsConfig.android && adsConfig.android.interstitial ? adsConfig.android.interstitial.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="android_native">Native Ad ID:</label>
+                            <input type="text" id="android_native" name="native" 
+                                   value="<%= adsConfig.android && adsConfig.android.native ? adsConfig.android.native.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="android_appopen">App Open Ad ID:</label>
+                            <input type="text" id="android_appopen" name="appopen" 
+                                   value="<%= adsConfig.android && adsConfig.android.appopen ? adsConfig.android.appopen.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="android_reward">Reward Ad ID:</label>
+                            <input type="text" id="android_reward" name="reward" 
+                                   value="<%= adsConfig.android && adsConfig.android.reward ? adsConfig.android.reward.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Android Ads
+                    </button>
+                </form>
+            </div>
+
+            <!-- iOS Ads Configuration -->
+            <div class="card">
+                <h3><i class="fab fa-apple"></i> iOS Ad Configuration</h3>
+                <form action="/ads-management/update" method="POST">
+                    <input type="hidden" name="platform" value="ios">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ios_banner">Banner Ad ID:</label>
+                            <input type="text" id="ios_banner" name="banner" 
+                                   value="<%= adsConfig.ios && adsConfig.ios.banner ? adsConfig.ios.banner.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="ios_interstitial">Interstitial Ad ID:</label>
+                            <input type="text" id="ios_interstitial" name="interstitial" 
+                                   value="<%= adsConfig.ios && adsConfig.ios.interstitial ? adsConfig.ios.interstitial.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ios_native">Native Ad ID:</label>
+                            <input type="text" id="ios_native" name="native" 
+                                   value="<%= adsConfig.ios && adsConfig.ios.native ? adsConfig.ios.native.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label for="ios_appopen">App Open Ad ID:</label>
+                            <input type="text" id="ios_appopen" name="appopen" 
+                                   value="<%= adsConfig.ios && adsConfig.ios.appopen ? adsConfig.ios.appopen.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ios_reward">Reward Ad ID:</label>
+                            <input type="text" id="ios_reward" name="reward" 
+                                   value="<%= adsConfig.ios && adsConfig.ios.reward ? adsConfig.ios.reward.id || '' : '' %>" 
+                                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save iOS Ads
+                    </button>
+                </form>
+            </div>
+
+            <!-- API Information -->
+            <div class="card">
+                <h3><i class="fas fa-code"></i> API Endpoints</h3>
+                <div class="api-info">
+                    <div class="api-endpoint">
+                        <strong>GET /api/ads-config</strong>
+                        <p>Get all ad configurations</p>
+                        <code>curl -X GET "http://your-domain.com/api/ads-config"</code>
+                    </div>
+                    <div class="api-endpoint">
+                        <strong>GET /api/ads-config?platform=android</strong>
+                        <p>Get Android ad configurations</p>
+                        <code>curl -X GET "http://your-domain.com/api/ads-config?platform=android"</code>
+                    </div>
+                    <div class="api-endpoint">
+                        <strong>GET /api/ads-config?platform=ios</strong>
+                        <p>Get iOS ad configurations</p>
+                        <code>curl -X GET "http://your-domain.com/api/ads-config?platform=ios"</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

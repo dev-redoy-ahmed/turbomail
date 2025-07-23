@@ -4,7 +4,6 @@ import 'device_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://165.22.109.153:3001';
-  static const String adminUrl = 'http://165.22.109.153:3003'; // Admin panel URL
   static const String apiKey = 'tempmail-master-key-2024';
   static const List<String> availableDomains = ['oplex.online', 'agrovia.store'];
 
@@ -16,7 +15,6 @@ class ApiService {
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
     
-    _adminDio.options.baseUrl = adminUrl;
     _adminDio.options.connectTimeout = const Duration(seconds: 10);
     _adminDio.options.receiveTimeout = const Duration(seconds: 10);
   }
@@ -178,12 +176,12 @@ class ApiService {
   /// Get app update information
   Future<Map<String, dynamic>?> getAppUpdate() async {
     try {
-      final response = await _adminDio.get('/api/app-update');
+      final response = await _adminDio.get('http://165.22.109.153:3006/api/app-update/latest');
       
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data['success'] && data['update'] != null) {
-          return data['update'];
+        if (data['success'] && data['data'] != null) {
+          return data['data'];
         }
       }
       return null;
@@ -196,10 +194,13 @@ class ApiService {
   /// Get ads configuration
   Future<Map<String, dynamic>?> getAdsConfig() async {
     try {
-      final response = await _adminDio.get('/api/ads-config');
+      final response = await _adminDio.get('http://165.22.109.153:3006/api/ads-config');
       
       if (response.statusCode == 200) {
-        return response.data;
+        final data = response.data;
+        if (data['success']) {
+          return data['data'];
+        }
       }
       return null;
     } catch (e) {
