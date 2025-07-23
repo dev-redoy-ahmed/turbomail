@@ -330,25 +330,30 @@ app.get('/check/:email', async (req, res) => {
   }
 });
 
-// ✅ 10. Get ads configuration for Flutter app
+// ✅ 10. Get ads configuration for Flutter app (all platforms)
 app.get('/ads-config', async (req, res) => {
   try {
-    // Connect to the same MongoDB database used by admin panel
+    // Get all ads configurations from MongoDB
     const adsConfig = await db.collection('adsconfigs').find({}).toArray();
     
-    const formattedConfig = {};
+    // Group by platform
+    const androidAds = {};
+    const iosAds = {};
+    
     adsConfig.forEach(ad => {
-      formattedConfig[ad.adType] = {
-        id: ad.adId,
-        isActive: ad.isActive,
-        platform: ad.platform,
-        description: ad.description
-      };
+      if (ad.platform === 'android') {
+        androidAds[ad.adType] = ad.ads_id;
+      } else if (ad.platform === 'ios') {
+        iosAds[ad.adType] = ad.ads_id;
+      }
     });
     
     res.json({
       success: true,
-      data: formattedConfig
+      data: {
+        android: androidAds,
+        ios: iosAds
+      }
     });
   } catch (error) {
     console.error('❌ Ads config fetch error:', error);
@@ -359,37 +364,158 @@ app.get('/ads-config', async (req, res) => {
   }
 });
 
+// ✅ 10a. Get Android ads configuration only
+app.get('/ads-config/android', async (req, res) => {
+  try {
+    const androidAds = await db.collection('adsconfigs').find({ platform: 'android' }).toArray();
+    
+    const adsConfig = {
+      banner_ad_id: '',
+      interstitial_ad_id: '',
+      rewarded_ad_id: '',
+      native_ad_id: '',
+      app_open_ad_id: ''
+    };
+    
+    androidAds.forEach(ad => {
+      switch(ad.adType) {
+        case 'banner':
+          adsConfig.banner_ad_id = ad.ads_id;
+          break;
+        case 'interstitial':
+          adsConfig.interstitial_ad_id = ad.ads_id;
+          break;
+        case 'reward':
+          adsConfig.rewarded_ad_id = ad.ads_id;
+          break;
+        case 'native':
+          adsConfig.native_ad_id = ad.ads_id;
+          break;
+        case 'appopen':
+          adsConfig.app_open_ad_id = ad.ads_id;
+          break;
+      }
+    });
+    
+    res.json(adsConfig);
+  } catch (error) {
+    console.error('❌ Android ads config fetch error:', error);
+    res.status(500).json({
+      error: 'Error fetching Android ads configuration'
+    });
+  }
+});
+
+// ✅ 10b. Get iOS ads configuration only
+app.get('/ads-config/ios', async (req, res) => {
+  try {
+    const iosAds = await db.collection('adsconfigs').find({ platform: 'ios' }).toArray();
+    
+    const adsConfig = {
+      banner_ad_id: '',
+      interstitial_ad_id: '',
+      rewarded_ad_id: '',
+      native_ad_id: '',
+      app_open_ad_id: ''
+    };
+    
+    iosAds.forEach(ad => {
+      switch(ad.adType) {
+        case 'banner':
+          adsConfig.banner_ad_id = ad.ads_id;
+          break;
+        case 'interstitial':
+          adsConfig.interstitial_ad_id = ad.ads_id;
+          break;
+        case 'reward':
+          adsConfig.rewarded_ad_id = ad.ads_id;
+          break;
+        case 'native':
+          adsConfig.native_ad_id = ad.ads_id;
+          break;
+        case 'appopen':
+          adsConfig.app_open_ad_id = ad.ads_id;
+          break;
+      }
+    });
+    
+    res.json(adsConfig);
+  } catch (error) {
+    console.error('❌ iOS ads config fetch error:', error);
+    res.status(500).json({
+      error: 'Error fetching iOS ads configuration'
+    });
+  }
+});
+
 // ✅ 11. Get latest app update for Flutter app
 app.get('/app-update/latest', async (req, res) => {
   try {
     const latestUpdate = await db.collection('appupdates')
-      .findOne({ isActive: true }, { sort: { versionCode: -1 } });
+      .findOne({ is_active: true }, { sort: { version_code: -1 } });
     
     if (!latestUpdate) {
       return res.json({
-        success: true,
-        data: null,
-        message: 'No active app update found'
+        success: false,
+        message: 'No active updates found'
       });
     }
     
     res.json({
       success: true,
-      data: {
-        versionName: latestUpdate.versionName,
-        versionCode: latestUpdate.versionCode,
-        isForceUpdate: latestUpdate.isForceUpdate,
-        isNormalUpdate: latestUpdate.isNormalUpdate,
-        updateMessage: latestUpdate.updateMessage,
-        updateLink: latestUpdate.updateLink,
-        isActive: latestUpdate.isActive
+      update: {
+        versionName: latestUpdate.version_name,
+        versionCode: latestUpdate.version_code,
+        isForceUpdate: latestUpdate.is_force_update,
+        isNormalUpdate: latestUpdate.is_normal_update,
+        updateMessage: latestUpdate.update_message,
+        updateLink: latestUpdate.update_link,
+        isActive: latestUpdate.is_active,
+        createdAt: latestUpdate.created_at,
+        updatedAt: latestUpdate.updated_at
       }
     });
   } catch (error) {
     console.error('❌ App update fetch error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error fetching app update information'
+      message: 'Internal server error'
+    });
+  }
+});
+
+// ✅ 12. Alternative endpoint for Flutter app compatibility
+app.get('/api/app-update', async (req, res) => {
+  try {
+    const latestUpdate = await db.collection('appupdates')
+      .findOne({ is_active: true }, { sort: { version_code: -1 } });
+    
+    if (!latestUpdate) {
+      return res.json({
+        success: false,
+        message: 'No active updates found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      update: {
+        versionName: latestUpdate.version_name,
+        versionCode: latestUpdate.version_code,
+        isForceUpdate: latestUpdate.is_force_update,
+        isNormalUpdate: latestUpdate.is_normal_update,
+        updateMessage: latestUpdate.update_message,
+        updateLink: latestUpdate.update_link,
+        isActive: latestUpdate.is_active,
+        createdAt: latestUpdate.created_at,
+        updatedAt: latestUpdate.updated_at
+      }
+    });
+  } catch (error) {
+    console.error('❌ App update fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
     });
   }
 });
