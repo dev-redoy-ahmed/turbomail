@@ -396,6 +396,40 @@ app.get('/check/:email', async (req, res) => {
 });
 
 // Simple API Routes - Only 3 APIs to fetch all data
+// ✅ Combined Ads API - Get all ads data (iOS and Android)
+app.get('/api/ads', async (req, res) => {
+  try {
+    const iosAdsCollection = db.collection('ads_ios');
+    const androidAdsCollection = db.collection('ads_android');
+    
+    const iosAds = await iosAdsCollection.findOne({});
+    const androidAds = await androidAdsCollection.findOne({});
+    
+    res.json({
+      success: true,
+      data: {
+        ios: iosAds || {
+          banner_ad_id: '',
+          interstitial_ad_id: '',
+          rewarded_ad_id: '',
+          native_ad_id: '',
+          app_open_ad_id: ''
+        },
+        android: androidAds || {
+          banner_ad_id: '',
+          interstitial_ad_id: '',
+          rewarded_ad_id: '',
+          native_ad_id: '',
+          app_open_ad_id: ''
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching ads:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // 1. iOS Ads API - Get all iOS ad IDs
 app.get('/api/ios-ads', async (req, res) => {
   try {
