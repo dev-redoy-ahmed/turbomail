@@ -98,7 +98,7 @@ fi
 echo "🧪 Testing services..."
 
 # Test admin panel
-if curl -s -I http://localhost:3006 | grep -q "200\|302"; then
+if curl -s -I http://localhost:3009 | grep -q "200\|302"; then
     print_status "Admin panel is responding"
 else
     print_error "Admin panel is not responding"
@@ -116,7 +116,7 @@ echo ""
 echo "🎉 Update process completed!"
 echo ""
 echo "📋 Next steps:"
-echo "1. Check admin panel at: http://your-vps-ip:3006"
+echo "1. Check admin panel at: http://165.22.109.153:3009"
 echo "2. Verify mail API functionality"
 echo "3. Test email receiving and management"
 echo ""
