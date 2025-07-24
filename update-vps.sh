@@ -112,30 +112,13 @@ for port in 3005 3000 8080; do
     fi
 done
 
-# Test new API endpoints
-echo "🔍 Testing new API endpoints..."
-
-# Test ads config endpoint
-if curl -s http://localhost:3006/api/ads-config | grep -q "success\|data"; then
-    print_status "Ads config endpoint is working"
-else
-    print_warning "Ads config endpoint may not be working"
-fi
-
-# Test app update endpoint
-if curl -s http://localhost:3006/api/app-update/latest | grep -q "success\|data"; then
-    print_status "App update endpoint is working"
-else
-    print_warning "App update endpoint may not be working"
-fi
-
 echo ""
 echo "🎉 Update process completed!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Check admin panel at: http://your-vps-ip:3006"
-echo "2. Verify new features: App Updates and Ads Management"
-echo "3. Test API endpoints for Flutter app integration"
+echo "2. Verify mail API functionality"
+echo "3. Test email receiving and management"
 echo ""
 echo "🔧 If issues persist:"
 echo "1. Check PM2 logs: pm2 logs"

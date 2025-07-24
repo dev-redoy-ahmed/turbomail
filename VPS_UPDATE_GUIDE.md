@@ -1,9 +1,9 @@
-# VPS Update Guide - TurboMail with App Updates & Ads Management
+# VPS Update Guide - TurboMail
 
 ## 🚀 VPS Information
 - **IP Address:** 165.22.109.153
 - **Admin Panel:** http://165.22.109.153:3006
-- **Mail API:** http://165.22.109.153:3005 (currently not responding)
+- **Mail API:** http://165.22.109.153:3005
 
 ## 📋 Current Status Check Results
 
@@ -13,8 +13,6 @@
 
 ### ❌ Issues Found:
 - **Mail API (Port 3005):** ❌ Not responding
-- **New Features:** ❌ Not deployed yet (App Updates & Ads Management)
-- **API Endpoints:** ❌ Missing new endpoints
 
 ## 🔄 Steps to Update VPS with Latest Code
 
@@ -74,52 +72,19 @@ pm2 status
 pm2 logs
 ```
 
-## 🧪 Testing New Features
+## 🧪 Testing Services
 
-### 1. Test Admin Panel New Features
+### 1. Test Admin Panel
 ```bash
-# Check if app-updates page exists
-curl -I http://165.22.109.153:3006/app-updates
-
-# Check if ads-management page exists  
-curl -I http://165.22.109.153:3006/ads-management
+# Check if admin panel is accessible
+curl -I http://165.22.109.153:3006
 ```
 
-### 2. Test New API Endpoints
+### 2. Test API Endpoints
 ```bash
-# Test ads config endpoint
-curl http://165.22.109.153:3006/api/ads-config
-
-# Test app update endpoint
-curl http://165.22.109.153:3006/api/app-update/latest
-
-# Test mail-api endpoints (if running on different port)
-curl http://165.22.109.153:3005/ads-config
-curl http://165.22.109.153:3005/app-update/latest
+# Test mail-api endpoints
+curl http://165.22.109.153:3005/api/emails/test@example.com
 ```
-
-## 📱 New Features Added
-
-### 1. App Updates Management
-- **Admin Route:** `/app-updates`
-- **API Endpoint:** `/api/app-update/latest`
-- **Features:**
-  - Create new app versions
-  - Set force/normal updates
-  - Activate/deactivate versions
-  - Delete old versions
-
-### 2. Ads Management (Enhanced)
-- **Admin Route:** `/ads-management` 
-- **API Endpoint:** `/api/ads-config`
-- **Features:**
-  - Manage different ad types (banner, interstitial, native, etc.)
-  - Platform-specific settings (Android/iOS)
-  - Enable/disable ads
-
-### 3. Database Collections
-- **adsconfigs:** Stores advertisement configurations
-- **appupdates:** Stores app version and update information
 
 ## 🔧 Troubleshooting
 
@@ -129,15 +94,15 @@ curl http://165.22.109.153:3005/app-update/latest
 3. Restart service: `pm2 restart mail-api`
 4. Check port configuration in config.js
 
-### If Admin Panel missing new features:
+### If Admin Panel has issues:
 1. Ensure latest code is pulled: `git pull origin main`
 2. Restart admin service: `pm2 restart admin`
-3. Check if new view files exist in `admin/views/`
+3. Check if view files exist in `admin/views/`
 
 ### If Database connection issues:
 1. Check MongoDB connection string in environment variables
 2. Ensure MongoDB is running
-3. Check network connectivity to MongoDB Atlas
+3. Check network connectivity to MongoDB
 
 ## 📞 Quick Commands for VPS Admin
 
@@ -163,18 +128,16 @@ netstat -tulpn | grep :300
 
 ## 🎯 Expected Results After Update
 
-1. **Admin Panel:** Should show "App Updates" and "Ads Management" in navigation
+1. **Admin Panel:** Should be accessible and functional
 2. **API Endpoints:** Should respond with JSON data
 3. **Mail API:** Should be accessible on configured port
-4. **Database:** Should have new collections for ads and app updates
+4. **Email System:** Should receive and manage emails properly
 
 ## 📋 Verification Checklist
 
 - [ ] Admin panel accessible at http://165.22.109.153:3006
 - [ ] Mail API accessible at http://165.22.109.153:3005 (or configured port)
-- [ ] App Updates page accessible: `/app-updates`
-- [ ] Ads Management page accessible: `/ads-management`
-- [ ] API endpoint working: `/api/ads-config`
-- [ ] API endpoint working: `/api/app-update/latest`
+- [ ] Email receiving functionality working
+- [ ] Admin dashboard functional
 - [ ] All PM2 services running
 - [ ] No errors in PM2 logs

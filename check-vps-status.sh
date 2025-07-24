@@ -63,55 +63,6 @@ else
     done
 fi
 
-# Test new API endpoints
-echo ""
-echo "🧪 Testing New API Endpoints..."
-
-# Test ads config endpoint
-echo "🔍 Testing /api/ads-config..."
-response=$(curl -s http://$VPS_IP:$ADMIN_PORT/api/ads-config)
-if echo "$response" | grep -q "success\|data\|{"; then
-    print_status "Ads config endpoint is working"
-    echo "Response: $response"
-else
-    print_warning "Ads config endpoint may not be deployed yet"
-    echo "Response: $response"
-fi
-
-# Test app update endpoint
-echo ""
-echo "🔍 Testing /api/app-update/latest..."
-response=$(curl -s http://$VPS_IP:$ADMIN_PORT/api/app-update/latest)
-if echo "$response" | grep -q "success\|data\|{"; then
-    print_status "App update endpoint is working"
-    echo "Response: $response"
-else
-    print_warning "App update endpoint may not be deployed yet"
-    echo "Response: $response"
-fi
-
-# Check if new admin pages exist
-echo ""
-echo "🔍 Checking New Admin Pages..."
-
-# Try to access app-updates page (will redirect to login, but should not be 404)
-echo "🔍 Testing /app-updates page..."
-response=$(curl -s -I http://$VPS_IP:$ADMIN_PORT/app-updates)
-if echo "$response" | grep -q "302\|200"; then
-    print_status "App Updates page exists"
-else
-    print_warning "App Updates page may not be deployed yet"
-fi
-
-# Try to access ads-management page
-echo "🔍 Testing /ads-management page..."
-response=$(curl -s -I http://$VPS_IP:$ADMIN_PORT/ads-management)
-if echo "$response" | grep -q "302\|200"; then
-    print_status "Ads Management page exists"
-else
-    print_warning "Ads Management page may not be deployed yet"
-fi
-
 echo ""
 echo "📋 Summary:"
 echo "================================================"

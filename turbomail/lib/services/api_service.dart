@@ -172,42 +172,6 @@ class ApiService {
       throw Exception('Failed to delete email from history: $e');
     }
   }
-
-  /// Get app update information
-  Future<Map<String, dynamic>?> getAppUpdate() async {
-    try {
-      final response = await _adminDio.get('http://165.22.109.153:3006/api/app-update/latest');
-      
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['success'] && data['data'] != null) {
-          return data['data'];
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Error getting app update: $e');
-      return null;
-    }
-  }
-
-  /// Get ads configuration
-  Future<Map<String, dynamic>?> getAdsConfig() async {
-    try {
-      final response = await _adminDio.get('http://165.22.109.153:3006/api/ads-config');
-      
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['success']) {
-          return data['data'];
-        }
-      }
-      return null;
-    } catch (e) {
-      print('Error getting ads config: $e');
-      return null;
-    }
-  }
 }
 
 /// Model for email history response

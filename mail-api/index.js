@@ -1,11 +1,13 @@
 // index.js (Express + Redis + MongoDB + Secure API Key + Email API + Socket.IO)
 
 const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const { simpleParser } = require('mailparser');
 const { createClient } = require('redis');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const crypto = require('crypto');
@@ -44,12 +46,75 @@ async function connectMongoDB() {
     db = mongoClient.db(DB_NAME);
     console.log('✅ MongoDB Atlas connected');
     
-    // Create indexes for better performance (only for generated emails)
+    // Create indexes for better performance
     await db.collection('generated_emails').createIndex({ email: 1 }, { unique: true });
     await db.collection('generated_emails').createIndex({ deviceId: 1 });
     await db.collection('generated_emails').createIndex({ createdAt: -1 });
+    
+    // Create indexes for ads and app updates
+    await db.collection('ads_ios').createIndex({ _id: 1 });
+    await db.collection('ads_android').createIndex({ _id: 1 });
+    await db.collection('app_updates').createIndex({ version_code: -1 });
+    await db.collection('app_updates').createIndex({ is_active: 1 });
+    
+    // Initialize default data if collections are empty
+    await initializeDefaultData();
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
+  }
+}
+
+// Initialize default data for ads and app updates
+async function initializeDefaultData() {
+  try {
+    // Check and insert default iOS ads if collection is empty
+    const iosAdsCount = await db.collection('ads_ios').countDocuments();
+    if (iosAdsCount === 0) {
+      await db.collection('ads_ios').insertOne({
+        banner_ad_id: "ca-app-pub-ios/aaa",
+        interstitial_ad_id: "ca-app-pub-ios/bbb",
+        rewarded_ad_id: "ca-app-pub-ios/ccc",
+        native_ad_id: "ca-app-pub-ios/ddd",
+        app_open_ad_id: "ca-app-pub-ios/eee",
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      console.log('✅ Default iOS ads data inserted');
+    }
+
+    // Check and insert default Android ads if collection is empty
+    const androidAdsCount = await db.collection('ads_android').countDocuments();
+    if (androidAdsCount === 0) {
+      await db.collection('ads_android').insertOne({
+        banner_ad_id: "ca-app-pub-android/111",
+        interstitial_ad_id: "ca-app-pub-android/222",
+        rewarded_ad_id: "ca-app-pub-android/333",
+        native_ad_id: "ca-app-pub-android/444",
+        app_open_ad_id: "ca-app-pub-android/555",
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      console.log('✅ Default Android ads data inserted');
+    }
+
+    // Check and insert default app update if collection is empty
+    const appUpdatesCount = await db.collection('app_updates').countDocuments();
+    if (appUpdatesCount === 0) {
+      await db.collection('app_updates').insertOne({
+        version_name: "1.2.3",
+        version_code: 123,
+        is_force_update: true,
+        is_normal_update: false,
+        is_active: true,
+        update_message: "Bug fixes and performance improvements.",
+        update_link: "",
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+      console.log('✅ Default app update data inserted');
+    }
+  } catch (error) {
+    console.error('❌ Error initializing default data:', error);
   }
 }
 
@@ -330,195 +395,181 @@ app.get('/check/:email', async (req, res) => {
   }
 });
 
-// ✅ 10. Get ads configuration for Flutter app (all platforms)
-app.get('/ads-config', async (req, res) => {
+// Simple API Routes - Only 3 APIs to fetch all data
+// 1. iOS Ads API - Get all iOS ad IDs
+app.get('/api/ios-ads', async (req, res) => {
   try {
-    // Get all ads configurations from MongoDB
-    const adsConfig = await db.collection('adsconfigs').find({}).toArray();
-    
-    // Group by platform
-    const androidAds = {};
-    const iosAds = {};
-    
-    adsConfig.forEach(ad => {
-      if (ad.platform === 'android') {
-        androidAds[ad.adType] = ad.ads_id;
-      } else if (ad.platform === 'ios') {
-        iosAds[ad.adType] = ad.ads_id;
-      }
-    });
+    const adsCollection = db.collection('ads_ios');
+    const ads = await adsCollection.findOne({});
     
     res.json({
       success: true,
-      data: {
-        android: androidAds,
-        ios: iosAds
+      data: ads || {
+        banner_ad_id: '',
+        interstitial_ad_id: '',
+        rewarded_ad_id: '',
+        native_ad_id: '',
+        app_open_ad_id: ''
       }
     });
   } catch (error) {
-    console.error('❌ Ads config fetch error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error fetching ads configuration'
-    });
+    console.error('Error fetching iOS ads:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ 10a. Get Android ads configuration only
-app.get('/ads-config/android', async (req, res) => {
+// 2. Android Ads API - Get all Android ad IDs
+app.get('/api/android-ads', async (req, res) => {
   try {
-    const androidAds = await db.collection('adsconfigs').find({ platform: 'android' }).toArray();
+    const adsCollection = db.collection('ads_android');
+    const ads = await adsCollection.findOne({});
     
-    const adsConfig = {
-      banner_ad_id: '',
-      interstitial_ad_id: '',
-      rewarded_ad_id: '',
-      native_ad_id: '',
-      app_open_ad_id: ''
-    };
-    
-    androidAds.forEach(ad => {
-      switch(ad.adType) {
-        case 'banner':
-          adsConfig.banner_ad_id = ad.ads_id;
-          break;
-        case 'interstitial':
-          adsConfig.interstitial_ad_id = ad.ads_id;
-          break;
-        case 'reward':
-          adsConfig.rewarded_ad_id = ad.ads_id;
-          break;
-        case 'native':
-          adsConfig.native_ad_id = ad.ads_id;
-          break;
-        case 'appopen':
-          adsConfig.app_open_ad_id = ad.ads_id;
-          break;
+    res.json({
+      success: true,
+      data: ads || {
+        banner_ad_id: '',
+        interstitial_ad_id: '',
+        rewarded_ad_id: '',
+        native_ad_id: '',
+        app_open_ad_id: ''
       }
     });
-    
-    res.json(adsConfig);
   } catch (error) {
-    console.error('❌ Android ads config fetch error:', error);
-    res.status(500).json({
-      error: 'Error fetching Android ads configuration'
-    });
+    console.error('Error fetching Android ads:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ 10b. Get iOS ads configuration only
-app.get('/ads-config/ios', async (req, res) => {
+// 3. App Updates API - Get all app update data
+app.get('/api/app-updates', async (req, res) => {
   try {
-    const iosAds = await db.collection('adsconfigs').find({ platform: 'ios' }).toArray();
+    const updatesCollection = db.collection('app_updates');
+    const updates = await updatesCollection.find({}).sort({ created_at: -1 }).toArray();
     
-    const adsConfig = {
-      banner_ad_id: '',
-      interstitial_ad_id: '',
-      rewarded_ad_id: '',
-      native_ad_id: '',
-      app_open_ad_id: ''
-    };
-    
-    iosAds.forEach(ad => {
-      switch(ad.adType) {
-        case 'banner':
-          adsConfig.banner_ad_id = ad.ads_id;
-          break;
-        case 'interstitial':
-          adsConfig.interstitial_ad_id = ad.ads_id;
-          break;
-        case 'reward':
-          adsConfig.rewarded_ad_id = ad.ads_id;
-          break;
-        case 'native':
-          adsConfig.native_ad_id = ad.ads_id;
-          break;
-        case 'appopen':
-          adsConfig.app_open_ad_id = ad.ads_id;
-          break;
-      }
+    res.json({
+      success: true,
+      data: updates
     });
-    
-    res.json(adsConfig);
   } catch (error) {
-    console.error('❌ iOS ads config fetch error:', error);
-    res.status(500).json({
-      error: 'Error fetching iOS ads configuration'
-    });
+    console.error('Error fetching app updates:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ✅ 11. Get latest app update for Flutter app
-app.get('/app-update/latest', async (req, res) => {
+// ✅ Update iOS ads via GET method (for admin panel)
+app.get('/ads/ios/update', async (req, res) => {
   try {
-    const latestUpdate = await db.collection('appupdates')
-      .findOne({ is_active: true }, { sort: { version_code: -1 } });
+    const { banner_ad_id, interstitial_ad_id, rewarded_ad_id, native_ad_id, app_open_ad_id } = req.query;
     
-    if (!latestUpdate) {
-      return res.json({
-        success: false,
-        message: 'No active updates found'
-      });
+    if (!banner_ad_id || !interstitial_ad_id || !rewarded_ad_id || !native_ad_id || !app_open_ad_id) {
+      return res.status(400).json({ error: 'All ad IDs are required as query parameters' });
     }
-    
-    res.json({
-      success: true,
-      update: {
-        versionName: latestUpdate.version_name,
-        versionCode: latestUpdate.version_code,
-        isForceUpdate: latestUpdate.is_force_update,
-        isNormalUpdate: latestUpdate.is_normal_update,
-        updateMessage: latestUpdate.update_message,
-        updateLink: latestUpdate.update_link,
-        isActive: latestUpdate.is_active,
-        createdAt: latestUpdate.created_at,
-        updatedAt: latestUpdate.updated_at
-      }
-    });
+
+    const updateData = {
+      banner_ad_id,
+      interstitial_ad_id,
+      rewarded_ad_id,
+      native_ad_id,
+      app_open_ad_id,
+      updated_at: new Date()
+    };
+
+    const result = await db.collection('ads_ios').updateOne(
+      {},
+      { $set: updateData },
+      { upsert: true }
+    );
+
+    res.json({ success: true, message: 'iOS ads updated successfully', data: updateData });
   } catch (error) {
-    console.error('❌ App update fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    console.error('❌ iOS ads update error:', error);
+    res.status(500).send('❌ Error updating iOS ads');
   }
 });
 
-// ✅ 12. Alternative endpoint for Flutter app compatibility
-app.get('/api/app-update', async (req, res) => {
+// ✅ Update Android ads via GET method (for admin panel)
+app.get('/ads/android/update', async (req, res) => {
   try {
-    const latestUpdate = await db.collection('appupdates')
-      .findOne({ is_active: true }, { sort: { version_code: -1 } });
+    const { banner_ad_id, interstitial_ad_id, rewarded_ad_id, native_ad_id, app_open_ad_id } = req.query;
     
-    if (!latestUpdate) {
-      return res.json({
-        success: false,
-        message: 'No active updates found'
-      });
+    if (!banner_ad_id || !interstitial_ad_id || !rewarded_ad_id || !native_ad_id || !app_open_ad_id) {
+      return res.status(400).json({ error: 'All ad IDs are required as query parameters' });
     }
-    
-    res.json({
-      success: true,
-      update: {
-        versionName: latestUpdate.version_name,
-        versionCode: latestUpdate.version_code,
-        isForceUpdate: latestUpdate.is_force_update,
-        isNormalUpdate: latestUpdate.is_normal_update,
-        updateMessage: latestUpdate.update_message,
-        updateLink: latestUpdate.update_link,
-        isActive: latestUpdate.is_active,
-        createdAt: latestUpdate.created_at,
-        updatedAt: latestUpdate.updated_at
-      }
-    });
+
+    const updateData = {
+      banner_ad_id,
+      interstitial_ad_id,
+      rewarded_ad_id,
+      native_ad_id,
+      app_open_ad_id,
+      updated_at: new Date()
+    };
+
+    const result = await db.collection('ads_android').updateOne(
+      {},
+      { $set: updateData },
+      { upsert: true }
+    );
+
+    res.json({ success: true, message: 'Android ads updated successfully', data: updateData });
   } catch (error) {
-    console.error('❌ App update fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    console.error('❌ Android ads update error:', error);
+    res.status(500).send('❌ Error updating Android ads');
   }
 });
+
+// ✅ Create new app update via GET method (for admin panel)
+app.get('/app/updates/create', async (req, res) => {
+  try {
+    const { 
+      version_name, 
+      version_code, 
+      is_force_update = 'false', 
+      is_normal_update = 'true', 
+      is_active = 'true', 
+      update_message, 
+      update_link = '' 
+    } = req.query;
+    
+    if (!version_name || !version_code || !update_message) {
+      return res.status(400).json({ error: 'version_name, version_code, and update_message are required' });
+    }
+
+    // If this update is being set as active, deactivate all others
+    if (is_active === 'true') {
+      await db.collection('app_updates').updateMany(
+        {},
+        { $set: { is_active: false, updated_at: new Date() } }
+      );
+    }
+
+    const updateData = {
+      version_name,
+      version_code: parseInt(version_code),
+      is_force_update: is_force_update === 'true',
+      is_normal_update: is_normal_update === 'true',
+      is_active: is_active === 'true',
+      update_message,
+      update_link: update_link || "",
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const result = await db.collection('app_updates').insertOne(updateData);
+    
+    res.json({ 
+      success: true, 
+      message: 'App update created successfully', 
+      id: result.insertedId,
+      update: updateData
+    });
+  } catch (error) {
+    console.error('❌ App update creation error:', error);
+    res.status(500).send('❌ Error creating app update');
+  }
+});
+
+
 
 // ✅ Haraka: POST raw mail + broadcast to inbox + store in MongoDB
 app.post('/incoming/raw', express.raw({ type: '*/*', limit: config.EMAIL.MAX_MESSAGE_SIZE }), async (req, res) => {

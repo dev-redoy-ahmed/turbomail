@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/email_provider.dart';
 import '../utils/page_transitions.dart';
-import '../services/ads_service.dart';
 import 'email_detail_screen.dart';
 
 class InboxScreen extends StatefulWidget {
@@ -375,70 +373,8 @@ class _InboxScreenState extends State<InboxScreen> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: emailProvider.emails.length + 1, // +1 for native ad
+            itemCount: emailProvider.emails.length,
             itemBuilder: (context, index) {
-              // Show native ad at the end
-              if (index == emailProvider.emails.length) {
-                return FutureBuilder<NativeAd?>(
-                  future: AdsService().loadNativeAd(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data != null) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        height: 300,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A2434),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFF00D4AA).withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: AdWidget(ad: snapshot.data!),
-                        ),
-                      );
-                    } else {
-                      // Fallback placeholder
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A2434),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFF00D4AA).withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.ads_click,
-                                color: Color(0xFF00D4AA),
-                                size: 32,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Native Ad Space',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                );
-              }
-              
               final email = emailProvider.emails[index];
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),

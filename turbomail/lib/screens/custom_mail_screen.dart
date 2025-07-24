@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/email_provider.dart';
-import '../services/ads_service.dart';
 import '../utils/page_transitions.dart';
 
 class CustomMailScreen extends StatefulWidget {
@@ -76,11 +75,6 @@ class _CustomMailScreenState extends State<CustomMailScreen> with TickerProvider
 
                       // Current Email Display (if exists)
                       _buildCurrentEmailDisplay(),
-
-                      const SizedBox(height: 30),
-
-                      // Ads Container
-                      _buildAdsContainer(),
 
                       const SizedBox(height: 20),
                     ],
@@ -454,119 +448,6 @@ class _CustomMailScreenState extends State<CustomMailScreen> with TickerProvider
     );
   }
 
-  Widget _buildAdsContainer() {
-    return Container(
-      width: double.infinity,
-      height: 280,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1A2434),
-            const Color(0xFF0F1C2E),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF00D4AA).withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF00D4AA), Color(0xFF00A693)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00D4AA).withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.star,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Upgrade to Premium',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Get unlimited custom emails\nand advanced features',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF00D4AA), Color(0xFF00A693)],
-              ),
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00D4AA).withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: const Text(
-              'Get Premium',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF00D4AA).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF00D4AA).withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: const Text(
-              'Ad Space',
-              style: TextStyle(
-                color: Color(0xFF00D4AA),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _createCustomEmail() async {
     if (_usernameController.text.trim().isEmpty) {
       _showErrorSnackBar('Please enter a username');
@@ -578,9 +459,6 @@ class _CustomMailScreenState extends State<CustomMailScreen> with TickerProvider
     });
 
     try {
-      // Show reward ad before creating custom email
-      await AdsService().showRewardedAd();
-      
       final emailProvider = Provider.of<EmailProvider>(context, listen: false);
       await emailProvider.generateManualEmail(
         _usernameController.text.trim().toLowerCase(),

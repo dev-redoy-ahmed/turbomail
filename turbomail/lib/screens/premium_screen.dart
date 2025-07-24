@@ -208,8 +208,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
         const SizedBox(height: 12),
         _buildFeatureCard(
           icon: Icons.block,
-          title: 'Ad-Free Experience',
-          description: 'Enjoy TurboMail without any advertisements',
+          title: 'Enhanced Experience',
+          description: 'Enjoy TurboMail with premium features and priority support',
         ),
       ],
     );

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/email_provider.dart';
 import '../services/api_service.dart';
 import '../services/device_service.dart';
-import '../services/ads_service.dart';
 import '../utils/page_transitions.dart';
 import 'inbox_screen.dart';
 
@@ -179,9 +178,6 @@ class _EmailHistoryPageState extends State<EmailHistoryPage> {
   }
 
   Future<void> _switchToEmail(HistoryEmailModel email) async {
-    // Show interstitial ad before switching email
-    await AdsService().showInterstitialAd();
-    
     final emailProvider = Provider.of<EmailProvider>(context, listen: false);
     
     try {

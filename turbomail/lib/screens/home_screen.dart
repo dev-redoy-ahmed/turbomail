@@ -3,10 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:turbomail/screens/premium_screen.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../providers/email_provider.dart';
 import '../utils/page_transitions.dart';
-import '../services/ads_service.dart';
 import 'inbox_screen.dart';
 import 'premium_screen.dart';
 import 'custom_drawer.dart';
@@ -60,9 +58,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _generateEmail() async {
-    // Show interstitial ad before generating email
-    await AdsService().showInterstitialAd();
-    
     final emailProvider = Provider.of<EmailProvider>(context, listen: false);
     await emailProvider.generateRandomEmail();
     if (mounted) {
@@ -506,65 +501,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildAdBox() {
-    return FutureBuilder<BannerAd?>(
-      future: AdsService().loadBannerAd(),
-      builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.data != null) {
-          final bannerAd = snapshot.data!;
-          return Container(
-            width: double.infinity,
-            height: bannerAd.size.height.toDouble(),
-            margin: const EdgeInsets.all(16),
-            child: AdWidget(ad: bannerAd),
-          );
-        } else {
-          // Fallback placeholder
-          return Container(
-            width: double.infinity,
-            height: 120,
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF00D4AA).withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.ads_click,
-                  color: Color(0xFF00D4AA),
-                  size: 32,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Advertisement Space',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Your ads could be here',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-      },
     );
   }
 

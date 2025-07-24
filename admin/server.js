@@ -1,49 +1,86 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const session = require('express-session');
-const fs = require('fs-extra');
+const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
-const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
-require('dotenv').config();
+const cors = require('cors');
+const session = require('express-session');
+const fs = require('fs').promises;
+
 const config = require('../config');
 
-// Import models
-const AdsConfig = require('./models/AdsConfig');
-const AppUpdate = require('./models/AppUpdate');
-
 const app = express();
-const PORT = config.ADMIN.PORT;
+const PORT = process.env.PORT || 3009;
 
-// Paths
-const HARAKA_HOST_LIST = path.join(__dirname, '../haraka-server/config/host_list');
-const MAIL_API_PATH = path.join(__dirname, '../mail-api/index.js');
+// MongoDB Atlas connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://username:password@cluster.mongodb.net/';
+const DB_NAME = 'turbomail';
+let db;
 
 // Middleware
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'assets')));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
 app.use(session({
-  secret: 'temp-mail-admin-secret-key',
+  secret: 'admin-secret-key',
   resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
+  saveUninitialized: false
 }));
 
-// MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://turbomail:we1we2we3@turbomail.gjohjma.mongodb.net/?retryWrites=true&w=majority&appName=turbomail';
-mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ Connected to MongoDB');
-})
-.catch((error) => {
-  console.error('❌ MongoDB connection error:', error);
-});
+// Set view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Connect to MongoDB Atlas
+async function connectToMongoDB() {
+  try {
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    db = client.db(DB_NAME);
+    console.log('✅ Connected to MongoDB Atlas');
+    
+    // Initialize collections if they don't exist
+    await initializeCollections();
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+  }
+}
+
+// Initialize collections with default data
+async function initializeCollections() {
+  try {
+    // Initialize iOS ads collection
+    const iosAdsCount = await db.collection('ads_ios').countDocuments();
+    if (iosAdsCount === 0) {
+      await db.collection('ads_ios').insertOne({
+        banner_ad_id: 'ca-app-pub-ios/banner',
+        interstitial_ad_id: 'ca-app-pub-ios/interstitial',
+        rewarded_ad_id: 'ca-app-pub-ios/rewarded',
+        native_ad_id: 'ca-app-pub-ios/native',
+        app_open_ad_id: 'ca-app-pub-ios/app-open',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    }
+
+    // Initialize Android ads collection
+    const androidAdsCount = await db.collection('ads_android').countDocuments();
+    if (androidAdsCount === 0) {
+      await db.collection('ads_android').insertOne({
+        banner_ad_id: 'ca-app-pub-android/banner',
+        interstitial_ad_id: 'ca-app-pub-android/interstitial',
+        rewarded_ad_id: 'ca-app-pub-android/rewarded',
+        native_ad_id: 'ca-app-pub-android/native',
+        app_open_ad_id: 'ca-app-pub-android/app-open',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    }
+
+    console.log('✅ Collections initialized');
+  } catch (error) {
+    console.error('❌ Error initializing collections:', error);
+  }
+}
 
 // Simple auth middleware
 const requireAuth = (req, res, next) => {
@@ -81,6 +118,194 @@ app.get('/', requireAuth, (req, res) => {
 
 app.get('/dashboard', requireAuth, (req, res) => {
   res.render('dashboard');
+});
+
+// Database Management Routes
+app.get('/database', requireAuth, async (req, res) => {
+  try {
+    // Get iOS ads
+    const iosAds = await db.collection('ads_ios').findOne({});
+    
+    // Get Android ads
+    const androidAds = await db.collection('ads_android').findOne({});
+    
+    // Get app updates
+    const appUpdates = await db.collection('app_updates').find({}).sort({ created_at: -1 }).toArray();
+    
+    res.render('database', { 
+      iosAds: iosAds || {
+        banner_ad_id: '',
+        interstitial_ad_id: '',
+        rewarded_ad_id: '',
+        native_ad_id: '',
+        app_open_ad_id: ''
+      },
+      androidAds: androidAds || {
+        banner_ad_id: '',
+        interstitial_ad_id: '',
+        rewarded_ad_id: '',
+        native_ad_id: '',
+        app_open_ad_id: ''
+      },
+      appUpdates,
+      success: null,
+      error: null
+    });
+  } catch (error) {
+    res.render('database', { 
+      iosAds: {
+        banner_ad_id: '',
+        interstitial_ad_id: '',
+        rewarded_ad_id: '',
+        native_ad_id: '',
+        app_open_ad_id: ''
+      },
+      androidAds: {
+        banner_ad_id: '',
+        interstitial_ad_id: '',
+        rewarded_ad_id: '',
+        native_ad_id: '',
+        app_open_ad_id: ''
+      },
+      appUpdates: [],
+      success: null,
+      error: error.message
+    });
+  }
+});
+
+// Update iOS Ads
+app.post('/database/ios-ads/update', requireAuth, async (req, res) => {
+  try {
+    const { banner_ad_id, interstitial_ad_id, rewarded_ad_id, native_ad_id, app_open_ad_id } = req.body;
+    
+    await db.collection('ads_ios').updateOne(
+      {},
+      {
+        $set: {
+          banner_ad_id,
+          interstitial_ad_id,
+          rewarded_ad_id,
+          native_ad_id,
+          app_open_ad_id,
+          updated_at: new Date()
+        }
+      },
+      { upsert: true }
+    );
+    
+    res.redirect('/database?success=iOS ads updated successfully');
+  } catch (error) {
+    res.redirect('/database?error=' + encodeURIComponent(error.message));
+  }
+});
+
+// Update Android Ads
+app.post('/database/android-ads/update', requireAuth, async (req, res) => {
+  try {
+    const { banner_ad_id, interstitial_ad_id, rewarded_ad_id, native_ad_id, app_open_ad_id } = req.body;
+    
+    await db.collection('ads_android').updateOne(
+      {},
+      {
+        $set: {
+          banner_ad_id,
+          interstitial_ad_id,
+          rewarded_ad_id,
+          native_ad_id,
+          app_open_ad_id,
+          updated_at: new Date()
+        }
+      },
+      { upsert: true }
+    );
+    
+    res.redirect('/database?success=Android ads updated successfully');
+  } catch (error) {
+    res.redirect('/database?error=' + encodeURIComponent(error.message));
+  }
+});
+
+// Create App Update
+app.post('/database/app-updates/create', requireAuth, async (req, res) => {
+  try {
+    const { version_name, version_code, update_message, is_force_update, is_active } = req.body;
+    
+    // Check if version code already exists
+    const existingUpdate = await db.collection('app_updates').findOne({ 
+      version_code: parseInt(version_code) 
+    });
+    
+    if (existingUpdate) {
+      return res.redirect('/database?error=' + encodeURIComponent('Version code already exists'));
+    }
+
+    // If this is set to active, deactivate all other updates
+    if (is_active === 'on') {
+      await db.collection('app_updates').updateMany(
+        { is_active: true },
+        { $set: { is_active: false } }
+      );
+    }
+
+    const newUpdate = {
+      version_name,
+      version_code: parseInt(version_code),
+      update_message,
+      is_force_update: is_force_update === 'on',
+      is_active: is_active === 'on',
+      created_at: new Date()
+    };
+
+    await db.collection('app_updates').insertOne(newUpdate);
+    
+    res.redirect('/database?success=App update created successfully');
+  } catch (error) {
+    res.redirect('/database?error=' + encodeURIComponent(error.message));
+  }
+});
+
+// Delete App Update
+app.post('/database/app-updates/delete/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await db.collection('app_updates').deleteOne({ _id: new ObjectId(id) });
+    
+    res.redirect('/database?success=App update deleted successfully');
+  } catch (error) {
+    res.redirect('/database?error=' + encodeURIComponent(error.message));
+  }
+});
+
+// Toggle App Update Active Status
+app.post('/database/app-updates/toggle/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const update = await db.collection('app_updates').findOne({ _id: new ObjectId(id) });
+    
+    if (!update) {
+      return res.redirect('/database?error=' + encodeURIComponent('App update not found'));
+    }
+
+    // If setting to active, deactivate all others
+    if (!update.is_active) {
+      await db.collection('app_updates').updateMany(
+        { is_active: true },
+        { $set: { is_active: false } }
+      );
+    }
+
+    await db.collection('app_updates').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { is_active: !update.is_active } }
+    );
+    
+    res.redirect('/database?success=App update status updated successfully');
+  } catch (error) {
+    res.redirect('/database?error=' + encodeURIComponent(error.message));
+  }
 });
 
 // Domain Management
@@ -243,495 +468,11 @@ app.post('/api-key/update', requireAuth, async (req, res) => {
   }
 });
 
-// Ads Management Routes
-app.get('/ads-management', requireAuth, async (req, res) => {
-  try {
-    const adsConfig = await AdsConfig.getAllAdsConfig();
-    const mongoUri = process.env.MONGO_URI || '';
-    const adsEnabled = true; // You can make this configurable
-    
-    res.render('ads-management', { 
-      adsConfig, 
-      mongoUri,
-      adsEnabled,
-      success: null, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error loading ads management:', error);
-    res.render('ads-management', { 
-      adsConfig: { 
-        android: {
-          banner: { id: '', description: '', isActive: false },
-          interstitial: { id: '', description: '', isActive: false },
-          native: { id: '', description: '', isActive: false },
-          appopen: { id: '', description: '', isActive: false },
-          reward: { id: '', description: '', isActive: false }
-        },
-        ios: {
-          banner: { id: '', description: '', isActive: false },
-          interstitial: { id: '', description: '', isActive: false },
-          native: { id: '', description: '', isActive: false },
-          appopen: { id: '', description: '', isActive: false },
-          reward: { id: '', description: '', isActive: false }
-        }
-      }, 
-      mongoUri: '',
-      adsEnabled: false,
-      success: null, 
-      error: `Failed to load ads configuration: ${error.message}` 
-    });
-  }
-});
 
-app.post('/ads-management/update', requireAuth, async (req, res) => {
-  try {
-    const { platform, banner, interstitial, native, appopen, reward } = req.body;
-    
-    if (!platform) {
-      throw new Error('Platform is required');
-    }
-    
-    // Validate platform
-    if (!['android', 'ios'].includes(platform)) {
-      throw new Error('Platform must be either android or ios');
-    }
-    
-    const adTypes = { banner, interstitial, native, appopen, reward };
-    const updatedAds = [];
-    
-    // Update each ad type for the platform
-    for (const [adType, adId] of Object.entries(adTypes)) {
-      if (adId && adId.trim()) {
-        // Validate ad ID format (basic AdMob format check)
-        const adIdPattern = /^ca-app-pub-\d{16}\/\d{10}$/;
-        if (!adIdPattern.test(adId.trim())) {
-          throw new Error(`Invalid ${adType} Ad ID format. Please use format: ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx`);
-        }
-        
-        await AdsConfig.updateAdConfig(adType, platform, adId.trim(), {
-          description: '',
-          isActive: true
-        });
-        updatedAds.push(adType);
-      }
-    }
-    
-    // Get updated data
-    const adsConfig = await AdsConfig.getAllAdsConfig();
-    
-    res.render('ads-management', { 
-      adsConfig, 
-      mongoUri: process.env.MONGO_URI || '',
-      adsEnabled: true,
-      success: `✅ ${platform.toUpperCase()} ads updated successfully! Updated: ${updatedAds.join(', ')}`, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error updating ad config:', error);
-    
-    // Get current data for error response
-    try {
-      const adsConfig = await AdsConfig.getAllAdsConfig();
-      res.render('ads-management', { 
-        adsConfig, 
-        mongoUri: process.env.MONGO_URI || '',
-        adsEnabled: true,
-        success: null, 
-        error: `❌ Failed to update ads: ${error.message}` 
-      });
-    } catch (getError) {
-      res.render('ads-management', { 
-        adsConfig: { 
-          android: {
-            banner: { id: '', description: '', isActive: false },
-            interstitial: { id: '', description: '', isActive: false },
-            native: { id: '', description: '', isActive: false },
-            appopen: { id: '', description: '', isActive: false },
-            reward: { id: '', description: '', isActive: false }
-          },
-          ios: {
-            banner: { id: '', description: '', isActive: false },
-            interstitial: { id: '', description: '', isActive: false },
-            native: { id: '', description: '', isActive: false },
-            appopen: { id: '', description: '', isActive: false },
-            reward: { id: '', description: '', isActive: false }
-          }
-        }, 
-        mongoUri: process.env.MONGO_URI || '',
-        adsEnabled: true,
-        success: null, 
-        error: `❌ Failed to update ads: ${error.message}` 
-      });
-    }
-  }
-});
 
-app.post('/ads-management/settings', requireAuth, async (req, res) => {
-  try {
-    const { mongoUri, adsEnabled } = req.body;
-    
-    // Update environment variables or config file
-    if (mongoUri && mongoUri.trim()) {
-      // You can save this to a config file or environment
-      process.env.MONGO_URI = mongoUri.trim();
-    }
-    
-    // Get updated data
-    const adsConfig = await AdsConfig.getAllAdsConfig();
-    
-    res.render('ads-management', { 
-      adsConfig, 
-      mongoUri: mongoUri || process.env.MONGO_URI || '',
-      adsEnabled: adsEnabled === 'true',
-      success: '✅ Settings updated successfully!', 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error updating settings:', error);
-    
-    res.render('ads-management', { 
-      adsConfig: { 
-        android: {
-          banner: { id: '', description: '', isActive: false },
-          interstitial: { id: '', description: '', isActive: false },
-          native: { id: '', description: '', isActive: false },
-          appopen: { id: '', description: '', isActive: false },
-          reward: { id: '', description: '', isActive: false }
-        },
-        ios: {
-          banner: { id: '', description: '', isActive: false },
-          interstitial: { id: '', description: '', isActive: false },
-          native: { id: '', description: '', isActive: false },
-          appopen: { id: '', description: '', isActive: false },
-          reward: { id: '', description: '', isActive: false }
-        }
-      }, 
-      mongoUri: process.env.MONGO_URI || '',
-      adsEnabled: false,
-      success: null, 
-      error: `❌ Failed to update settings: ${error.message}` 
-    });
-  }
-});
 
-// App Updates Management Routes
-app.get('/app-updates', requireAuth, async (req, res) => {
-  try {
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: null, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error loading app updates:', error);
-    res.render('app-updates', { 
-      updates: [], 
-      success: null, 
-      error: error.message 
-    });
-  }
-});
 
-app.post('/app-updates/create', requireAuth, async (req, res) => {
-  try {
-    const { version_name, version_code, update_message, update_link, is_force_update, is_normal_update, is_active } = req.body;
-    
-    if (!version_name || !version_code) {
-      throw new Error('Version name and version code are required');
-    }
-    
-    const updateData = {
-      version_name: version_name.trim(),
-      version_code: parseInt(version_code),
-      update_message: update_message || 'A new version is available. Please update for the best experience.',
-      update_link: update_link || 'https://example.com/app-download',
-      is_force_update: is_force_update === 'true',
-      is_normal_update: is_normal_update === 'true',
-      is_active: is_active === 'true'
-    };
-    
-    await AppUpdate.createOrUpdateVersion(updateData);
-    
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: `✅ App version ${version_name} created successfully!`, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error creating app update:', error);
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: null, 
-      error: `❌ Failed to create app update: ${error.message}` 
-    });
-  }
-});
 
-app.post('/app-updates/activate', requireAuth, async (req, res) => {
-  try {
-    const { version_code } = req.body;
-    
-    if (!version_code) {
-      throw new Error('Version code is required');
-    }
-    
-    const activatedVersion = await AppUpdate.activateVersion(parseInt(version_code));
-    
-    if (!activatedVersion) {
-      throw new Error('Version not found');
-    }
-    
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: `✅ Version ${activatedVersion.version_name} activated successfully!`, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error activating app update:', error);
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: null, 
-      error: `❌ Failed to activate version: ${error.message}` 
-    });
-  }
-});
-
-app.post('/app-updates/deactivate', requireAuth, async (req, res) => {
-  try {
-    const { version_code } = req.body;
-    
-    if (!version_code) {
-      throw new Error('Version code is required');
-    }
-    
-    const deactivatedVersion = await AppUpdate.deactivateVersion(parseInt(version_code));
-    
-    if (!deactivatedVersion) {
-      throw new Error('Version not found');
-    }
-    
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: `✅ Version ${deactivatedVersion.version_name} deactivated successfully!`, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error deactivating app update:', error);
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: null, 
-      error: `❌ Failed to deactivate version: ${error.message}` 
-    });
-  }
-});
-
-app.post('/app-updates/delete', requireAuth, async (req, res) => {
-  try {
-    const { version_code } = req.body;
-    
-    if (!version_code) {
-      throw new Error('Version code is required');
-    }
-    
-    const deletedVersion = await AppUpdate.deleteVersion(parseInt(version_code));
-    
-    if (!deletedVersion) {
-      throw new Error('Version not found');
-    }
-    
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: `✅ Version ${deletedVersion.version_name} deleted successfully!`, 
-      error: null 
-    });
-  } catch (error) {
-    console.error('Error deleting app update:', error);
-    const updates = await AppUpdate.getAllUpdates();
-    res.render('app-updates', { 
-      updates, 
-      success: null, 
-      error: `❌ Failed to delete version: ${error.message}` 
-    });
-  }
-});
-
-// API endpoint to get ads config for Flutter app
-app.get('/api/ads-config', async (req, res) => {
-  try {
-    const { platform } = req.query;
-    
-    if (platform && ['android', 'ios'].includes(platform)) {
-      // Get ads for specific platform
-      const adsConfig = await AdsConfig.getAdsByPlatform(platform);
-      res.json({
-        success: true,
-        data: adsConfig
-      });
-    } else {
-      // Get all ads config (both platforms)
-      const adsConfig = await AdsConfig.getAllAdsConfig();
-      res.json({
-        success: true,
-        data: adsConfig
-      });
-    }
-  } catch (error) {
-    console.error('Error getting ads config:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// API endpoint to update ads config
-app.post('/api/ads-config', async (req, res) => {
-  try {
-    const { adType, platform, adId, description, isActive } = req.body;
-    
-    if (!adType || !platform || !adId || !adId.trim()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Ad type, platform, and Ad ID are required'
-      });
-    }
-    
-    // Validate platform
-    if (!['android', 'ios'].includes(platform)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Platform must be either android or ios'
-      });
-    }
-    
-    // Validate ad ID format (basic AdMob format check)
-    const adIdPattern = /^ca-app-pub-\d{16}\/\d{10}$/;
-    if (!adIdPattern.test(adId.trim())) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid Ad ID format. Please use format: ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx'
-      });
-    }
-    
-    const updateOptions = {
-      description: description || '',
-      isActive: isActive === true || isActive === 'true'
-    };
-    
-    await AdsConfig.updateAdConfig(adType, platform, adId.trim(), updateOptions);
-    
-    const adsConfig = await AdsConfig.getAllAdsConfig();
-    res.json({
-      success: true,
-      data: adsConfig,
-      message: `${platform.toUpperCase()} ${adType.charAt(0).toUpperCase() + adType.slice(1)} ad updated successfully!`
-    });
-  } catch (error) {
-    console.error('Error updating ads config:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// API endpoint to get latest app update for Flutter app
-app.get('/api/app-update/latest', async (req, res) => {
-  try {
-    const latestUpdate = await AppUpdate.getLatestUpdate();
-    
-    if (!latestUpdate) {
-      return res.json({
-        success: true,
-        data: null,
-        message: 'No active app update found'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: {
-        version_name: latestUpdate.version_name,
-        version_code: latestUpdate.version_code,
-        is_force_update: latestUpdate.is_force_update,
-        is_normal_update: latestUpdate.is_normal_update,
-        update_message: latestUpdate.update_message,
-        update_link: latestUpdate.update_link,
-        is_active: latestUpdate.is_active
-      }
-    });
-  } catch (error) {
-    console.error('Error getting latest app update:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// API endpoint to get all app updates (for admin purposes)
-app.get('/api/app-updates', async (req, res) => {
-  try {
-    const updates = await AppUpdate.getAllUpdates();
-    res.json({
-      success: true,
-      data: updates
-    });
-  } catch (error) {
-    console.error('Error getting all app updates:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// API endpoint to create or update app version
-app.post('/api/app-updates', async (req, res) => {
-  try {
-    const { version_name, version_code, update_message, update_link, is_force_update, is_normal_update, is_active } = req.body;
-    
-    if (!version_name || !version_code) {
-      return res.status(400).json({
-        success: false,
-        error: 'Version name and version code are required'
-      });
-    }
-    
-    const updateData = {
-      version_name: version_name.trim(),
-      version_code: parseInt(version_code),
-      update_message: update_message || 'A new version is available. Please update for the best experience.',
-      update_link: update_link || 'https://example.com/app-download',
-      is_force_update: is_force_update === true || is_force_update === 'true',
-      is_normal_update: is_normal_update === true || is_normal_update === 'true',
-      is_active: is_active === true || is_active === 'true'
-    };
-    
-    const result = await AppUpdate.createOrUpdateVersion(updateData);
-    
-    res.json({
-      success: true,
-      data: result,
-      message: `App version ${version_name} created/updated successfully!`
-    });
-  } catch (error) {
-    console.error('Error creating/updating app version:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
 
 // Helper functions
 async function getApiKey() {
@@ -847,6 +588,7 @@ async function updateMailApiDomains(domains) {
   }
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Admin Panel running on http://localhost:${PORT}`);
+  await connectToMongoDB();
 });

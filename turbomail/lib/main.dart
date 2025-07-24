@@ -2,24 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/email_provider.dart';
 import 'providers/premium_provider.dart';
-import 'services/ads_service.dart';
-import 'services/app_update_service.dart';
 import 'screens/dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Ads Service
-  await AdsService().initialize();
   
   // Create EmailProvider instance
   final emailProvider = EmailProvider();
   
   // Auto-generate an email when the app starts
   await emailProvider.generateRandomEmail();
-  
-  // Show app open ad after initialization
-  await AdsService().showAppOpenAd();
   
   runApp(TurboMailApp(emailProvider: emailProvider));
 }
@@ -34,15 +26,6 @@ class TurboMailApp extends StatefulWidget {
 }
 
 class _TurboMailAppState extends State<TurboMailApp> {
-  @override
-  void initState() {
-    super.initState();
-    // Initialize app update service after the widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      AppUpdateService.initialize(context);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
