@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3009;
 
 // MongoDB Atlas connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://username:password@cluster.mongodb.net/';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://turbomail:turbomail123@cluster0.mongodb.net/turbomail?retryWrites=true&w=majority';
 const DB_NAME = 'turbomail';
 let db;
 
@@ -33,15 +33,25 @@ app.set('views', path.join(__dirname, 'views'));
 // Connect to MongoDB Atlas
 async function connectToMongoDB() {
   try {
-    const client = new MongoClient(MONGODB_URI);
+    const client = new MongoClient(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+    });
     await client.connect();
     db = client.db(DB_NAME);
     console.log('✅ Connected to MongoDB Atlas');
+    
+    // Test the connection
+    await db.admin().ping();
+    console.log('✅ MongoDB Atlas connection verified');
     
     // Initialize collections if they don't exist
     await initializeCollections();
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
+    console.error('❌ Please check your MongoDB Atlas connection string and network access');
   }
 }
 
@@ -123,6 +133,11 @@ app.get('/dashboard', requireAuth, (req, res) => {
 // Database Management Routes
 app.get('/database', requireAuth, async (req, res) => {
   try {
+    // Check if database connection exists
+    if (!db) {
+      throw new Error('Database connection not established. Please check MongoDB Atlas connection.');
+    }
+
     // Get iOS ads
     const iosAds = await db.collection('ads_ios').findOne({});
     
@@ -131,6 +146,11 @@ app.get('/database', requireAuth, async (req, res) => {
     
     // Get app updates
     const appUpdates = await db.collection('app_updates').find({}).sort({ created_at: -1 }).toArray();
+    
+    console.log('✅ Database data retrieved successfully');
+    console.log('iOS Ads:', iosAds ? 'Found' : 'Not found');
+    console.log('Android Ads:', androidAds ? 'Found' : 'Not found');
+    console.log('App Updates:', appUpdates.length, 'found');
     
     res.render('database', { 
       iosAds: iosAds || {
@@ -148,10 +168,11 @@ app.get('/database', requireAuth, async (req, res) => {
         app_open_ad_id: ''
       },
       appUpdates,
-      success: null,
-      error: null
+      success: req.query.success || null,
+      error: req.query.error || null
     });
   } catch (error) {
+    console.error('❌ Database route error:', error);
     res.render('database', { 
       iosAds: {
         banner_ad_id: '',
@@ -177,9 +198,19 @@ app.get('/database', requireAuth, async (req, res) => {
 // Update iOS Ads
 app.post('/database/ios-ads/update', requireAuth, async (req, res) => {
   try {
+    // Check if database connection exists
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+
     const { banner_ad_id, interstitial_ad_id, rewarded_ad_id, native_ad_id, app_open_ad_id } = req.body;
     
-    await db.collection('ads_ios').updateOne(
+    // Validate required fields
+    if (!banner_ad_id || !interstitial_ad_id || !rewarded_ad_id || !native_ad_id || !app_open_ad_id) {
+      throw new Error('All ad ID fields are required');
+    }
+    
+    const result = await db.collection('ads_ios').updateOne(
       {},
       {
         $set: {
@@ -194,8 +225,10 @@ app.post('/database/ios-ads/update', requireAuth, async (req, res) => {
       { upsert: true }
     );
     
-    res.redirect('/database?success=iOS ads updated successfully');
+    console.log('✅ iOS ads updated successfully:', result);
+    res.redirect('/database?success=' + encodeURIComponent('iOS ads updated successfully'));
   } catch (error) {
+    console.error('❌ iOS ads update error:', error);
     res.redirect('/database?error=' + encodeURIComponent(error.message));
   }
 });
@@ -203,9 +236,19 @@ app.post('/database/ios-ads/update', requireAuth, async (req, res) => {
 // Update Android Ads
 app.post('/database/android-ads/update', requireAuth, async (req, res) => {
   try {
+    // Check if database connection exists
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+
     const { banner_ad_id, interstitial_ad_id, rewarded_ad_id, native_ad_id, app_open_ad_id } = req.body;
     
-    await db.collection('ads_android').updateOne(
+    // Validate required fields
+    if (!banner_ad_id || !interstitial_ad_id || !rewarded_ad_id || !native_ad_id || !app_open_ad_id) {
+      throw new Error('All ad ID fields are required');
+    }
+    
+    const result = await db.collection('ads_android').updateOne(
       {},
       {
         $set: {
@@ -220,8 +263,10 @@ app.post('/database/android-ads/update', requireAuth, async (req, res) => {
       { upsert: true }
     );
     
-    res.redirect('/database?success=Android ads updated successfully');
+    console.log('✅ Android ads updated successfully:', result);
+    res.redirect('/database?success=' + encodeURIComponent('Android ads updated successfully'));
   } catch (error) {
+    console.error('❌ Android ads update error:', error);
     res.redirect('/database?error=' + encodeURIComponent(error.message));
   }
 });
