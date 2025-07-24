@@ -1,5 +1,6 @@
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
+const MongoStore = require('connect-mongo');
 const path = require('path');
 const cors = require('cors');
 const session = require('express-session');
@@ -8,12 +9,18 @@ const fs = require('fs').promises;
 const config = require('../config');
 
 const app = express();
-const PORT = process.env.PORT || 3009;
+const PORT = process.env.PORT || config.ADMIN.PORT;
 
-// MongoDB Atlas connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://turbomail:turbomail123@cluster0.mongodb.net/turbomail?retryWrites=true&w=majority';
+// MongoDB Atlas connection - Hardcoded for VPS deployment
+const MONGODB_URI = 'mongodb+srv://turbomail:we1we2we3@turbomail.gjohjma.mongodb.net/?retryWrites=true&w=majority&appName=turbomail';
 const DB_NAME = 'turbomail';
 let db;
+
+console.log('🔗 Using MongoDB URI:', MONGODB_URI);
+
+// File paths
+const HARAKA_HOST_LIST = path.join(__dirname, '../haraka-server/config/host_list');
+const MAIL_API_PATH = path.join(__dirname, '../mail-api/index.js');
 
 // Middleware
 app.use(cors());
@@ -23,7 +30,15 @@ app.use(express.static(path.join(__dirname, 'assets')));
 app.use(session({
   secret: 'admin-secret-key',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: MONGODB_URI,
+    dbName: DB_NAME,
+    collectionName: 'admin_sessions'
+  }),
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Set view engine
@@ -33,12 +48,10 @@ app.set('views', path.join(__dirname, 'views'));
 // Connect to MongoDB Atlas
 async function connectToMongoDB() {
   try {
-    const client = new MongoClient(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
-    });
+    console.log('🔄 Attempting to connect to MongoDB Atlas...');
+    console.log('🔗 Connection URI:', MONGODB_URI);
+    
+    const client = new MongoClient(MONGODB_URI);
     await client.connect();
     db = client.db(DB_NAME);
     console.log('✅ Connected to MongoDB Atlas');
@@ -47,11 +60,21 @@ async function connectToMongoDB() {
     await db.admin().ping();
     console.log('✅ MongoDB Atlas connection verified');
     
+    // Create indexes for better performance
+    await db.collection('ads_ios').createIndex({ _id: 1 });
+    await db.collection('ads_android').createIndex({ _id: 1 });
+    await db.collection('app_updates').createIndex({ version_code: -1 });
+    await db.collection('app_updates').createIndex({ is_active: 1 });
+    
     // Initialize collections if they don't exist
     await initializeCollections();
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
+    console.error('❌ Error details:', error.message);
     console.error('❌ Please check your MongoDB Atlas connection string and network access');
+    // Retry connection after 5 seconds
+    console.log('🔄 Retrying connection in 5 seconds...');
+    setTimeout(connectToMongoDB, 5000);
   }
 }
 
@@ -633,7 +656,7 @@ async function updateMailApiDomains(domains) {
   }
 }
 
-app.listen(PORT, async () => {
-  console.log(`🚀 Admin Panel running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`🚀 Admin Panel running on http://0.0.0.0:${PORT}`);
   await connectToMongoDB();
 });

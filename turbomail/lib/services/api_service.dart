@@ -3,7 +3,7 @@ import '../models/email_model.dart';
 import 'device_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://165.22.109.153:3001';
+  static const String baseUrl = 'https://oplex.online';
   static const String apiKey = 'tempmail-master-key-2024';
   static const List<String> availableDomains = ['oplex.online', 'agrovia.store'];
 

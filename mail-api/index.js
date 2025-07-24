@@ -11,7 +11,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const crypto = require('crypto');
-const config = require('../config');
+const config = require('./config');
 
 const app = express();
 const httpServer = createServer(app);
