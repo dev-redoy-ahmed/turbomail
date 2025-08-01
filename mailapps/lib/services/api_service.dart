@@ -212,37 +212,24 @@ class ApiService {
   }
 
   // Cache management methods
-  Future<bool> _isCacheValid(Map<String, dynamic> cachedData) async {
-    if (cachedData['timestamp'] == null) return false;
-    
-    final cacheTime = DateTime.fromMillisecondsSinceEpoch(cachedData['timestamp']);
-    final now = DateTime.now();
-    final difference = now.difference(cacheTime).inHours;
-    
-    return difference < 24; // Cache valid for 24 hours
+  Future<bool> _isCacheValid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final timestamp = prefs.getInt(_cacheTimestampKey) ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final cacheAge = now - timestamp;
+    final maxAge = _cacheValidityHours * 60 * 60 * 1000; // Convert to milliseconds
+    return cacheAge < maxAge;
   }
 
-  Future<void> _saveCache(String key, Map<String, dynamic> data) async {
+  Future<void> _saveCache(String key, String data) async {
     final prefs = await SharedPreferences.getInstance();
-    final cacheData = {
-      'data': data,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
-    await prefs.setString(key, jsonEncode(cacheData));
+    await prefs.setString(key, data);
+    await prefs.setInt(_cacheTimestampKey, DateTime.now().millisecondsSinceEpoch);
   }
 
-  Future<Map<String, dynamic>?> _getCache(String key) async {
+  Future<String?> _getCache(String key) async {
     final prefs = await SharedPreferences.getInstance();
-    final cachedString = prefs.getString(key);
-    if (cachedString != null) {
-      try {
-        return jsonDecode(cachedString) as Map<String, dynamic>;
-      } catch (e) {
-        debugPrint('Error parsing cache for $key: $e');
-        await prefs.remove(key);
-      }
-    }
-    return null;
+    return prefs.getString(key);
   }
 
   /// Get ad configuration from API based on platform
@@ -336,15 +323,13 @@ class ApiService {
   /// Get app configuration from API
   Future<AppConfig> getAppConfig() async {
     try {
-      debugPrint('🔄 Fetching app configuration...');
-      
       // Check cache first
       if (await _isCacheValid()) {
         final cachedData = await _getCache(_appConfigCacheKey);
         if (cachedData != null) {
           try {
             final json = jsonDecode(cachedData) as Map<String, dynamic>;
-            debugPrint('✅ Using cached app config');
+            debugPrint('App configuration loaded from cache');
             return AppConfig.fromJson(json);
           } catch (e) {
             debugPrint('Error parsing cached app config: $e');
@@ -354,51 +339,34 @@ class ApiService {
         }
       }
 
-      final response = await _dio.get(
-        '/api/app-updates',
-        options: Options(
-          headers: {
-            'x-api-key': apiKey,
-            'Content-Type': 'application/json',
-          },
-        ),
-      );
+      debugPrint('Fetching app config from API');
 
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final updates = response.data['data'] as List;
-        debugPrint('✅ App config fetched successfully');
-        debugPrint('📊 Found ${updates.length} app updates');
+      // Fetch from API
+      final response = await _dio.get('/api/app-updates', queryParameters: {
+        'key': apiKey,
+      });
 
-        // Find the latest active update
-        Map<String, dynamic>? latestUpdate;
-        for (var update in updates) {
-          if (update['is_active'] == true) {
-            if (latestUpdate == null || 
-                (update['version_code'] as int) > (latestUpdate['version_code'] as int)) {
-              latestUpdate = update;
-            }
-          }
-        }
-
-        // Transform the response to match AppConfig model
+      if (response.statusCode == 200) {
+        // Transform the response to match our AppConfig model
+        final data = response.data['data'];
         final transformedData = {
-          'latest_version': latestUpdate?['version_name'] ?? '1.0.0',
-          'minimum_version': latestUpdate?['minimum_version'] ?? '1.0.0',
-          'update_url': latestUpdate?['download_url'] ?? '',
-          'force_update': latestUpdate?['is_force_update'] ?? false,
-          'update_message': latestUpdate?['update_message'] ?? 'A new version is available',
+          'latest_version': data['latest_version'] ?? '1.0.0',
+          'minimum_version': data['minimum_version'] ?? '1.0.0',
+          'update_url': data['update_url'] ?? '',
+          'force_update': data['force_update'] ?? false,
+          'update_message': data['update_message'] ?? '',
         };
-
+        
         // Save to cache as JSON string
         await _saveCache(_appConfigCacheKey, jsonEncode(transformedData));
         
+        debugPrint('App configuration loaded from API');
         return AppConfig.fromJson(transformedData);
       } else {
-        debugPrint('❌ Failed to fetch app config: ${response.data}');
-        return _getDefaultAppConfig();
+        throw Exception('Failed to load app config: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('❌ Error fetching app config: $e');
+      debugPrint('Error fetching app config: $e');
       
       // Try to return cached data even if expired
       final cachedData = await _getCache(_appConfigCacheKey);
@@ -415,14 +383,8 @@ class ApiService {
       
       // Return default config if all else fails
       debugPrint('Using default app configuration');
-      return _getDefaultAppConfig();
+      return AppConfig.fromJson({});
     }
-  }
-
-  // Get default app configuration
-  AppConfig _getDefaultAppConfig() {
-    debugPrint('Using default app configuration');
-    return AppConfig.fromJson({});
   }
 
   /// Clear specific cache

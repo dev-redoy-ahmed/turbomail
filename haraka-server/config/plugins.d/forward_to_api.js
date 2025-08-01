@@ -1,6 +1,9 @@
 const http = require('http');
 const { PassThrough } = require('stream');
-const config = require('../../../config');
+const config = require('../../../config.js');
+
+
+
 
 exports.hook_queue = function (next, connection) {
   const txn = connection.transaction;
@@ -23,11 +26,11 @@ exports.hook_queue = function (next, connection) {
 
     connection.loginfo(this, `📨 Safely received mail for: ${recipient}`);
 
-    // Include the API key in the request
+    // Prepare HTTP request options for forwarding the email to your API
     const options = {
-      hostname: config.SMTP.HOST,
+      hostname: config.SMTP.HOST, // usually '127.0.0.1' if API is local
+      port: config.API.PORT,      // port where your API listens
       path: `/incoming/raw?to=${encodeURIComponent(recipient)}&key=${config.API.MASTER_KEY}`,
-      port: config.API.PORT,
       method: 'POST',
       headers: {
         'Content-Type': 'application/octet-stream',
@@ -35,17 +38,15 @@ exports.hook_queue = function (next, connection) {
       }
     };
 
+    // Send the raw email data to the API endpoint
     const req = http.request(options, res => {
       connection.loginfo(this, `✅ Mail forwarded: ${res.statusCode}`);
-      
-      // Log response body for debugging
+
       let responseBody = '';
-      res.on('data', chunk => {
-        responseBody += chunk;
-      });
+      res.on('data', chunk => { responseBody += chunk; });
       res.on('end', () => {
         if (res.statusCode !== 200) {
-          connection.logerror(this, `❌ API response: ${responseBody}`);
+          connection.logerror(this, `❌ API response error: ${responseBody}`);
         } else {
           connection.loginfo(this, `📧 Email successfully processed for ${recipient}`);
         }
@@ -59,7 +60,8 @@ exports.hook_queue = function (next, connection) {
     req.write(raw);
     req.end();
 
-    next(); // tell Haraka we're done
+    // Continue processing in Haraka
+    next();
   });
 
   txn.message_stream.pipe(pass);

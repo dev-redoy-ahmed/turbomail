@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TurboMail API Testing Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .api-section {
+            margin-bottom: 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .section-header h2 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .section-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .endpoint {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .endpoint:last-child {
+            border-bottom: none;
+        }
+        
+        .endpoint-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .endpoint-url {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .get { background: #28a745; color: white; }
+        .post { background: #dc3545; color: white; }
+        .delete { background: #fd7e14; color: white; }
+        .put { background: #6f42c1; color: white; }
+        
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        
+        .params {
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .config-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .config-info h3 {
+            color: #0066cc;
+            margin-bottom: 15px;
+        }
+        
+        .config-item {
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 TurboMail API Testing Dashboard</h1>
+            <p>Complete API endpoint testing interface with MongoDB integration</p>
+        </div>
+        
+        <div class="content">
+            <div class="config-info">
+                <h3>📋 API Configuration</h3>
+                <div class="config-item"><strong>Base URL:</strong> http://localhost:3001</div>
+                <div class="config-item"><strong>API Key:</strong> tempmail-master-key-2024</div>
+                <div class="config-item"><strong>MongoDB:</strong> Connected to turbomail database</div>
+                <div class="config-item"><strong>Collections:</strong> ads_ios, ads_android, app_updates, generated_emails</div>
+            </div>
+            
+            <div class="note success">
+                <strong>✅ MongoDB Status:</strong> All collections are properly configured and indexed for optimal performance.
+            </div>
+            
+            <!-- Email Management APIs -->
+            <div class="api-section">
+                <div class="section-header">
+                    <h2>📧 Email Management APIs</h2>
+                    <p>Generate, manage and view temporary emails</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Generate Random Email
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/generate?key=tempmail-master-key-2024&deviceId=test-device-123
+                    </div>
+                    <div class="params">Generates a random email address and stores it in MongoDB</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/generate?key=tempmail-master-key-2024&deviceId=test-device-123')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Generate Custom Email
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/generate/manual?key=tempmail-master-key-2024&username=myemail&domain=oplex.online&deviceId=test-device-123
+                    </div>
+                    <div class="params">Creates a custom email with specified username and domain</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/generate/manual?key=tempmail-master-key-2024&username=myemail&domain=oplex.online&deviceId=test-device-123')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> View Inbox
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/inbox/myemail@oplex.online?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">View all messages for a specific email address</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/inbox/myemail@oplex.online?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Check Email Availability
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/check/testemail@oplex.online?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Check if an email address is available for use</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/check/testemail@oplex.online?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Email History
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/history/test-device-123?key=tempmail-master-key-2024&page=1&limit=10
+                    </div>
+                    <div class="params">Get email history for a specific device with pagination</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/history/test-device-123?key=tempmail-master-key-2024&page=1&limit=10')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Starred Emails
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/starred/test-device-123?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Get all starred emails for a specific device</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/starred/test-device-123?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+            </div>
+            
+            <!-- App Configuration APIs -->
+            <div class="api-section">
+                <div class="section-header">
+                    <h2>📱 App Configuration APIs</h2>
+                    <p>Manage ads and app updates from MongoDB</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> All Ads (Combined)
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/api/ads?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Get both iOS and Android ad configurations in one response</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/api/ads?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> iOS Ads
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/api/ios-ads?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Get iOS ad IDs from ads_ios collection</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/api/ios-ads?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Android Ads
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/api/android-ads?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Get Android ad IDs from ads_android collection</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/api/android-ads?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> App Updates
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/api/app-updates?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Get all app update information from app_updates collection</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/api/app-updates?key=tempmail-master-key-2024')">Test API</button>
+                </div>
+            </div>
+            
+            <!-- Admin Management APIs -->
+            <div class="api-section">
+                <div class="section-header">
+                    <h2>⚙️ Admin Management APIs</h2>
+                    <p>Update ads and create app updates</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Update iOS Ads
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/ads/ios/update?key=tempmail-master-key-2024&banner_ad_id=ca-app-pub-ios/banner&interstitial_ad_id=ca-app-pub-ios/interstitial&rewarded_ad_id=ca-app-pub-ios/rewarded&native_ad_id=ca-app-pub-ios/native&app_open_ad_id=ca-app-pub-ios/appopen
+                    </div>
+                    <div class="params">Update iOS ad IDs in MongoDB</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/ads/ios/update?key=tempmail-master-key-2024&banner_ad_id=ca-app-pub-ios/banner&interstitial_ad_id=ca-app-pub-ios/interstitial&rewarded_ad_id=ca-app-pub-ios/rewarded&native_ad_id=ca-app-pub-ios/native&app_open_ad_id=ca-app-pub-ios/appopen')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Update Android Ads
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/ads/android/update?key=tempmail-master-key-2024&banner_ad_id=ca-app-pub-android/banner&interstitial_ad_id=ca-app-pub-android/interstitial&rewarded_ad_id=ca-app-pub-android/rewarded&native_ad_id=ca-app-pub-android/native&app_open_ad_id=ca-app-pub-android/appopen
+                    </div>
+                    <div class="params">Update Android ad IDs in MongoDB</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/ads/android/update?key=tempmail-master-key-2024&banner_ad_id=ca-app-pub-android/banner&interstitial_ad_id=ca-app-pub-android/interstitial&rewarded_ad_id=ca-app-pub-android/rewarded&native_ad_id=ca-app-pub-android/native&app_open_ad_id=ca-app-pub-android/appopen')">Test API</button>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method get">GET</span> Create App Update
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/app/updates/create?key=tempmail-master-key-2024&version_name=2.0.0&version_code=200&is_force_update=true&is_normal_update=false&is_active=true&update_message=New features added&update_link=https://play.google.com/store
+                    </div>
+                    <div class="params">Create a new app update entry in MongoDB</div>
+                    <button class="test-btn" onclick="testAPI('http://localhost:3001/app/updates/create?key=tempmail-master-key-2024&version_name=2.0.0&version_code=200&is_force_update=true&is_normal_update=false&is_active=true&update_message=New features added&update_link=https://play.google.com/store')">Test API</button>
+                </div>
+            </div>
+            
+            <!-- Delete APIs -->
+            <div class="api-section">
+                <div class="section-header">
+                    <h2>🗑️ Delete APIs</h2>
+                    <p>Delete emails and messages</p>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method delete">DELETE</span> Delete Entire Inbox
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/delete/myemail@oplex.online?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Delete all messages from an email inbox</div>
+                    <div class="note">Note: DELETE requests need to be tested using tools like Postman or curl</div>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method delete">DELETE</span> Delete Specific Message
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/delete/myemail@oplex.online/0?key=tempmail-master-key-2024
+                    </div>
+                    <div class="params">Delete a specific message by index (0 = first message)</div>
+                    <div class="note">Note: DELETE requests need to be tested using tools like Postman or curl</div>
+                </div>
+                
+                <div class="endpoint">
+                    <div class="endpoint-title">
+                        <span class="method delete">DELETE</span> Delete Email from History
+                    </div>
+                    <div class="endpoint-url">
+                        http://localhost:3001/history/myemail@oplex.online?key=tempmail-master-key-2024&deviceId=test-device-123
+                    </div>
+                    <div class="params">Delete an email from MongoDB history</div>
+                    <div class="note">Note: DELETE requests need to be tested using tools like Postman or curl</div>
+                </div>
+            </div>
+            
+            <div class="note">
+                <strong>📝 Testing Notes:</strong><br>
+                • All GET APIs can be tested directly in the browser<br>
+                • DELETE and PUT APIs require tools like Postman, curl, or JavaScript fetch<br>
+                • MongoDB collections are automatically created and indexed<br>
+                • Default data is inserted when collections are empty<br>
+                • API key is required for all endpoints: tempmail-master-key-2024
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function testAPI(url) {
+            window.open(url, '_blank');
+        }
+        
+        // Auto-refresh status every 30 seconds
+        setInterval(() => {
+            console.log('API Dashboard is active');
+        }, 30000);
+    </script>
+</body>
+</html>

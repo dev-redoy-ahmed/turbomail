@@ -2,6 +2,7 @@
   "dependencies": {
     "dotenv": "^17.2.0",
     "haraka": "^0.0.33",
+    "Haraka": "^3.1.1",
     "mailparser": "^3.7.4",
     "mongodb": "^6.18.0"
   }
